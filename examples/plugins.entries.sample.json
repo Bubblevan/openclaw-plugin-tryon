@@ -1,0 +1,26 @@
+{
+  "plugins": {
+    "entries": {
+      "stablepay-mock-plugin": {
+        "enabled": true,
+        "config": {
+          "backendBaseUrl": "http://127.0.0.1:8080",
+          "verifyPageBaseUrl": "http://127.0.0.1:3000/verify",
+          "requestTimeoutMs": 8000,
+          "rewardAmount": 1
+        }
+      }
+    },
+    "allow": ["stablepay-mock-plugin"]
+  },
+  "tools": {
+    "allow": [
+      "stablepay_create_mock_wallet",
+      "stablepay_generate_verify_link",
+      "stablepay_verify_x_mock",
+      "stablepay_query_balance",
+      "stablepay_get_verify_status",
+      "stablepay_seed_mock_tweet"
+    ]
+  }
+}

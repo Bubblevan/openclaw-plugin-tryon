@@ -1,0 +1,56 @@
+{
+  "id": "stablepay-mock-plugin",
+  "name": "StablePay Mock Plugin",
+  "description": "Trial OpenClaw plugin for StablePay mock DID registration, X verification, and balance checks.",
+  "version": "0.1.0",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "backendBaseUrl": {
+        "type": "string",
+        "format": "uri",
+        "description": "StablePay mock backend base URL, for example http://127.0.0.1:8080"
+      },
+      "verifyPageBaseUrl": {
+        "type": "string",
+        "format": "uri",
+        "description": "Verification page base URL, for example http://127.0.0.1:3000/verify"
+      },
+      "requestTimeoutMs": {
+        "type": "integer",
+        "minimum": 1000,
+        "maximum": 30000,
+        "default": 8000,
+        "description": "HTTP request timeout in milliseconds"
+      },
+      "rewardAmount": {
+        "type": "number",
+        "minimum": 0,
+        "default": 1,
+        "description": "Displayed reward amount for the mock verification flow"
+      }
+    },
+    "required": ["backendBaseUrl"]
+  },
+  "uiHints": {
+    "backendBaseUrl": {
+      "label": "StablePay backend URL",
+      "help": "Base URL for your Hertz mock verification service",
+      "placeholder": "http://127.0.0.1:8080"
+    },
+    "verifyPageBaseUrl": {
+      "label": "Verify page URL",
+      "help": "Optional. Used when generating a shareable verify link",
+      "placeholder": "http://127.0.0.1:3000/verify"
+    },
+    "requestTimeoutMs": {
+      "label": "Request timeout (ms)",
+      "help": "Timeout for plugin HTTP calls"
+    },
+    "rewardAmount": {
+      "label": "Reward amount",
+      "help": "Only used for UI text in the mock flow"
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "@stablepay/openclaw-stablepay-plugin",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "StablePay trial OpenClaw plugin for mock DID creation, X verification, and balance checks.",
+  "openclaw": {
+    "extensions": ["./src/index.ts"]
+  },
+  "scripts": {
+    "check": "tsc --noEmit",
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@sinclair/typebox": "^0.34.41"
+  },
+  "peerDependencies": {
+    "openclaw": ">=2026.3.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3",
+    "@types/node": "^24.0.0"
+  }
+}
