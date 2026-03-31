@@ -1,8 +1,8 @@
 {
   "id": "stablepay-mock-plugin",
-  "name": "StablePay Mock Plugin",
-  "description": "Trial OpenClaw plugin for StablePay mock DID registration, X verification, and balance checks.",
-  "version": "0.1.0",
+  "name": "StablePay Local Wallet Plugin",
+  "description": "OpenClaw plugin for StablePay local wallet runtime, DID registration, mock X verification, and local signing flows.",
+  "version": "0.2.0",
   "configSchema": {
     "type": "object",
     "additionalProperties": false,
@@ -10,7 +10,7 @@
       "backendBaseUrl": {
         "type": "string",
         "format": "uri",
-        "description": "StablePay mock backend base URL, for example http://127.0.0.1:8080"
+        "description": "StablePay API Gateway base URL, for example http://127.0.0.1:8080"
       },
       "verifyPageBaseUrl": {
         "type": "string",
@@ -29,14 +29,49 @@
         "minimum": 0,
         "default": 1,
         "description": "Displayed reward amount for the mock verification flow"
+      },
+      "localStatePath": {
+        "type": "string",
+        "description": "Path to the encrypted local plugin state file"
+      },
+      "localStateKeyEnv": {
+        "type": "string",
+        "description": "Environment variable that provides the master key used to encrypt the local plugin state"
+      },
+      "owsVaultPath": {
+        "type": "string",
+        "description": "Optional OWS vault path override when a supported OWS runtime is available"
+      },
+      "owsPassphraseEnv": {
+        "type": "string",
+        "description": "Environment variable that stores the OWS passphrase"
+      },
+      "owsRuntime": {
+        "type": "string",
+        "enum": ["auto", "ows-sdk", "ows-cli", "wsl-ows", "local-dev"],
+        "default": "auto",
+        "description": "Preferred local signing runtime"
+      },
+      "walletNamePrefix": {
+        "type": "string",
+        "description": "Wallet name prefix used when creating local wallets"
+      },
+      "didRegisterPath": {
+        "type": "string",
+        "description": "API path used to register a client-side wallet into DID Service"
+      },
+      "allowLegacyDidCreateFallback": {
+        "type": "boolean",
+        "default": false,
+        "description": "Whether to fall back to the old /api/v1/did endpoint when /api/v1/did/register is not available"
       }
     },
     "required": ["backendBaseUrl"]
   },
   "uiHints": {
     "backendBaseUrl": {
-      "label": "StablePay backend URL",
-      "help": "Base URL for your Hertz mock verification service",
+      "label": "StablePay gateway URL",
+      "help": "Base URL for api-gateway, for example http://127.0.0.1:8080",
       "placeholder": "http://127.0.0.1:8080"
     },
     "verifyPageBaseUrl": {
@@ -44,13 +79,21 @@
       "help": "Optional. Used when generating a shareable verify link",
       "placeholder": "http://127.0.0.1:3000/verify"
     },
-    "requestTimeoutMs": {
-      "label": "Request timeout (ms)",
-      "help": "Timeout for plugin HTTP calls"
+    "localStatePath": {
+      "label": "Local state path",
+      "help": "Encrypted local state file used by the plugin runtime"
     },
-    "rewardAmount": {
-      "label": "Reward amount",
-      "help": "Only used for UI text in the mock flow"
+    "localStateKeyEnv": {
+      "label": "State key env",
+      "help": "Environment variable used as the master key for local AES-256-GCM encryption"
+    },
+    "owsRuntime": {
+      "label": "Signing runtime",
+      "help": "Prefer auto. The plugin will use OWS when available, otherwise local-dev on Windows"
+    },
+    "didRegisterPath": {
+      "label": "DID register path",
+      "help": "Target API path for client-side DID registration"
     }
   }
 }

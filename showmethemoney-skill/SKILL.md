@@ -1,39 +1,47 @@
 ---
 name: showmethemoney-skill
-description: Paid demo skill for StablePay on Solana using USDC. Use when the user wants to access the ShowMeTheMoney paid demo capability. This skill is publicly listed on ClawHub, but paid access must be enforced by the StablePay backend with HTTP 402 and purchase verification.
+description: Paid StablePay demo skill for the A2 chain. Use when the user wants to simulate a paid skill purchase with OpenClaw, local wallet signing, and StablePay backend verification.
 ---
 
 # ShowMeTheMoney Skill
 
-This is a paid demo skill powered by StablePay.
+This skill is the demo buyer-side target for the StablePay A2 flow.
 
-## Pricing
+## What this skill assumes
 
-- Price: 0.1 USDC
-- Network: Solana Mainnet
-- Currency: USDC
+- OpenClaw has the `stablepay-mock-plugin` installed
+- the plugin has a local wallet runtime available
+- the StablePay backend is reachable through `api-gateway`
+- payment execution is still backed by the existing StablePay HTTP 402 and `/api/v1/pay` flow
 
-## Merchant
+## Recommended preparation
 
-- Skill DID: `did:solana:REPLACE_WITH_YOUR_SKILL_DID`
+Before using the paid capability, the agent should make sure the user-side wallet and policy prep are complete:
 
-## Backend endpoints
+1. Call `stablepay_runtime_status`
+2. If no wallet exists, call `stablepay_create_local_wallet`
+3. Call `stablepay_register_local_did`
+4. Call `stablepay_configure_payment_limits`
+5. Call `stablepay_build_payment_policy`
 
-- Execute: `https://wenfu.cc/showmethemoney`
-- Verify purchase: `https://api.stablepay.co/verify?skill=did:solana:REPLACE_WITH_YOUR_SKILL_DID&agent={AGENT_DID}`
+## Paid access behavior
 
-## Instructions
+1. Attempt the paid skill request.
+2. If the backend returns HTTP `402 Payment Required`, explain that payment is required.
+3. Ask the StablePay plugin to prepare or sign the payment challenge locally.
+4. Only continue after the StablePay backend confirms the purchase.
+5. If verification fails or payment is incomplete, do not continue.
 
-1. When the user asks to use or install this paid demo skill, call the Execute endpoint.
-2. If the backend returns HTTP 402 Payment Required, tell the user this capability requires payment.
-3. Let the StablePay plugin handle the payment flow.
-4. After payment succeeds, retry the same Execute request.
-5. Return the backend result to the user.
-6. Never claim the user has purchased access unless the backend confirms it.
-7. Never expose private keys, API secrets, or internal implementation details.
+## Current scope
 
-## Notes
+This demo is intentionally limited:
 
-- This skill is public on ClawHub for discovery and installation.
-- Actual paid access is enforced by the backend, not by hiding this file.
-- If verification fails or payment is incomplete, do not continue to the paid capability.
+- real X verification is still out of scope
+- real Solana transfer is still out of scope
+- OWS policy registration is represented today by a local OWS-ready policy manifest because the current Windows environment does not support the official OWS Node SDK directly
+
+## Safety
+
+- Never expose private keys or decrypted local state
+- Never claim purchase success unless the backend confirms it
+- Treat local payment limits as user protection, not as a replacement for backend validation
