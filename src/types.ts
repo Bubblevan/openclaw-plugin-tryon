@@ -1,7 +1,9 @@
-export type RuntimeDriver = "auto" | "ows-sdk" | "ows-cli" | "wsl-ows" | "local-dev";
+export type RuntimeDriver = "auto" | "ows-sdk" | "ows-cli" | "wsl-ows" | "ows-rest" | "local-dev";
+
+export type OwsRestAuthMode = "bearer" | "x_api_key" | "raw";
 
 export type PluginConfig = {
-  backendBaseUrl: string;
+  backendBaseUrl?: string;
   verifyPageBaseUrl?: string;
   requestTimeoutMs?: number;
   rewardAmount?: number;
@@ -12,21 +14,30 @@ export type PluginConfig = {
   owsRuntime?: RuntimeDriver;
   walletNamePrefix?: string;
   didRegisterPath?: string;
-  allowLegacyDidCreateFallback?: boolean;
+  /** Base URL of an OWS-compatible local sign HTTP service (Profile C). When set, enables the ows-rest runtime. */
+  owsRestBaseUrl?: string;
+  /** POST path for signMessage, default /v1/sign/message */
+  owsRestSignPath?: string;
+  /** Env var holding the API token for ows-rest (default STABLEPAY_OWS_REST_API_KEY) */
+  owsRestApiKeyEnv?: string;
+  owsRestAuthMode?: OwsRestAuthMode;
+  /** Default wallet UUID for ows-rest when not passed at wallet creation */
+  owsRestWalletId?: string;
+  /** CAIP-2 chain id for Solana (default devnet cluster from OWS examples) */
+  owsRestChainId?: string;
 };
 
 export type RequestHeaders = Record<string, string>;
-
-export type CreateWalletParams = {
-  did?: string;
-  wallet_address?: string;
-};
 
 export type CreateLocalWalletParams = {
   user_id?: string;
   user_type?: "agent" | "developer";
   wallet_name?: string;
   runtime?: Exclude<RuntimeDriver, "auto">;
+  /** Required for ows-cli / wsl-ows / ows-rest: Solana public key (Base58) from `ows wallet list` or similar */
+  public_key?: string;
+  /** Optional OWS wallet UUID for ows-rest (overrides plugin config owsRestWalletId) */
+  ows_wallet_id?: string;
 };
 
 export type RegisterLocalDidParams = {

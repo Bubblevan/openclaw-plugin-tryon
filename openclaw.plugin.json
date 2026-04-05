@@ -1,8 +1,8 @@
 {
-  "id": "stablepay-mock-plugin",
-  "name": "StablePay Local Wallet Plugin",
-  "description": "OpenClaw plugin for StablePay local wallet runtime, DID registration, mock X verification, and local signing flows.",
-  "version": "0.2.0",
+  "id": "stablepay",
+  "name": "StablePay",
+  "description": "StablePay wallet, DID registration (client-held keys), OWS/local signing, and payment flows.",
+  "version": "0.3.0",
   "configSchema": {
     "type": "object",
     "additionalProperties": false,
@@ -10,7 +10,8 @@
       "backendBaseUrl": {
         "type": "string",
         "format": "uri",
-        "description": "StablePay API Gateway base URL, for example http://127.0.0.1:8080"
+        "default": "http://127.0.0.1:8080",
+        "description": "StablePay API Gateway base URL, for example http://127.0.0.1:28080"
       },
       "verifyPageBaseUrl": {
         "type": "string",
@@ -28,7 +29,7 @@
         "type": "number",
         "minimum": 0,
         "default": 1,
-        "description": "Displayed reward amount for the mock verification flow"
+        "description": "Displayed reward amount for the X verification demo flow"
       },
       "localStatePath": {
         "type": "string",
@@ -48,9 +49,37 @@
       },
       "owsRuntime": {
         "type": "string",
-        "enum": ["auto", "ows-sdk", "ows-cli", "wsl-ows", "local-dev"],
+        "enum": ["auto", "ows-sdk", "ows-cli", "wsl-ows", "ows-rest", "local-dev"],
         "default": "auto",
         "description": "Preferred local signing runtime"
+      },
+      "owsRestBaseUrl": {
+        "type": "string",
+        "format": "uri",
+        "description": "OWS HTTP access layer base URL (enables ows-rest). Body: SignMessageRequest JSON; response must include hex signature."
+      },
+      "owsRestSignPath": {
+        "type": "string",
+        "default": "/v1/sign/message",
+        "description": "POST path appended to owsRestBaseUrl for signMessage"
+      },
+      "owsRestApiKeyEnv": {
+        "type": "string",
+        "description": "Environment variable name for the REST API token (default STABLEPAY_OWS_REST_API_KEY)"
+      },
+      "owsRestAuthMode": {
+        "type": "string",
+        "enum": ["bearer", "x_api_key", "raw"],
+        "default": "bearer",
+        "description": "How to send the token: Authorization Bearer, X-API-Key, or raw Authorization value"
+      },
+      "owsRestWalletId": {
+        "type": "string",
+        "description": "Default OWS wallet UUID for ows-rest signing when not passed at wallet creation"
+      },
+      "owsRestChainId": {
+        "type": "string",
+        "description": "CAIP-2 chain id for Solana (default solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp)"
       },
       "walletNamePrefix": {
         "type": "string",
@@ -59,20 +88,14 @@
       "didRegisterPath": {
         "type": "string",
         "description": "API path used to register a client-side wallet into DID Service"
-      },
-      "allowLegacyDidCreateFallback": {
-        "type": "boolean",
-        "default": false,
-        "description": "Whether to fall back to the old /api/v1/did endpoint when /api/v1/did/register is not available"
       }
-    },
-    "required": ["backendBaseUrl"]
+    }
   },
   "uiHints": {
     "backendBaseUrl": {
       "label": "StablePay gateway URL",
-      "help": "Base URL for api-gateway, for example http://127.0.0.1:8080",
-      "placeholder": "http://127.0.0.1:8080"
+      "help": "Base URL for api-gateway, for example http://127.0.0.1:28080",
+      "placeholder": "http://127.0.0.1:28080"
     },
     "verifyPageBaseUrl": {
       "label": "Verify page URL",
@@ -89,11 +112,11 @@
     },
     "owsRuntime": {
       "label": "Signing runtime",
-      "help": "Prefer auto. The plugin will use OWS when available, otherwise local-dev on Windows"
+      "help": "Prefer auto. Uses OWS SDK, OWS CLI, REST, or local-dev encrypted keystore"
     },
     "didRegisterPath": {
       "label": "DID register path",
-      "help": "Target API path for client-side DID registration"
+      "help": "Must be POST /api/v1/did/register (server never stores private keys)"
     }
   }
 }

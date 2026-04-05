@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -133,10 +134,27 @@ export class StablePayRuntime {
     const availability = await this.detectAvailability(params.runtime);
     const walletName = buildWalletName(this.cfg.walletNamePrefix, params.user_id, params.wallet_name);
 
-    const wallet =
-      availability.activeDriver === "ows-sdk"
-        ? await this.createWithOwsSdk(walletName)
-        : await this.createWithLocalDev(walletName);
+    let wallet: WalletState;
+    if (availability.activeDriver === "ows-cli" || availability.activeDriver === "wsl-ows") {
+      const pk = params.public_key?.trim();
+      if (!pk) {
+        throw new Error(
+          "public_key is required for ows-cli / wsl-ows: use the Solana Base58 address from `ows wallet list` (same as OWS account address).",
+        );
+      }
+      wallet = this.createOwsCliLinkedWallet(walletName, pk, availability.activeDriver);
+    } else if (availability.activeDriver === "ows-rest") {
+      const pk = params.public_key?.trim();
+      const wid = (params.ows_wallet_id?.trim() || this.cfg.owsRestWalletId).trim();
+      if (!pk || !wid) {
+        throw new Error("ows-rest requires public_key and ows_wallet_id (or set plugin config owsRestWalletId).");
+      }
+      wallet = this.createOwsRestLinkedWallet(walletName, pk, wid);
+    } else if (availability.activeDriver === "ows-sdk") {
+      wallet = await this.createWithOwsSdk(walletName);
+    } else {
+      wallet = await this.createWithLocalDev(walletName);
+    }
 
     state.wallet = wallet;
     await this.saveState(state);
@@ -286,6 +304,12 @@ export class StablePayRuntime {
           this.cfg.owsVaultPath || undefined,
         ).signature,
       );
+    } else if (state.runtimeDriver === "ows-cli" || state.runtimeDriver === "wsl-ows") {
+      signature = signWithOwsCli(state.walletName, params.chain ?? "solana", payload);
+    } else if (state.runtimeDriver === "ows-rest") {
+      const chainId =
+        params.chain && params.chain.includes(":") ? params.chain : this.cfg.owsRestChainId;
+      signature = await this.signWithOwsRest(chainId, state.walletId, payload);
     } else {
       if (!state.localDevPrivateKeyPem) {
         throw new Error("Local dev private key not found in local state");
@@ -335,6 +359,82 @@ export class StablePayRuntime {
     };
   }
 
+  private createOwsCliLinkedWallet(
+    walletName: string,
+    publicKeyBase58: string,
+    driver: "ows-cli" | "wsl-ows",
+  ): WalletState {
+    return {
+      walletId: walletName,
+      walletName,
+      did: `did:solana:${publicKeyBase58}`,
+      publicKey: publicKeyBase58,
+      walletAddress: publicKeyBase58,
+      runtimeDriver: driver,
+      createdAt: new Date().toISOString(),
+    };
+  }
+
+  private createOwsRestLinkedWallet(
+    walletName: string,
+    publicKeyBase58: string,
+    owsWalletUUID: string,
+  ): WalletState {
+    return {
+      walletId: owsWalletUUID,
+      walletName,
+      did: `did:solana:${publicKeyBase58}`,
+      publicKey: publicKeyBase58,
+      walletAddress: publicKeyBase58,
+      runtimeDriver: "ows-rest",
+      createdAt: new Date().toISOString(),
+    };
+  }
+
+  private async signWithOwsRest(chainId: string, walletId: string, message: string): Promise<string> {
+    const base = this.cfg.owsRestBaseUrl.replace(/\/+$/, "");
+    const signPath = this.cfg.owsRestSignPath.startsWith("/")
+      ? this.cfg.owsRestSignPath
+      : `/${this.cfg.owsRestSignPath}`;
+    const token = process.env[this.cfg.owsRestApiKeyEnv];
+    if (!token) {
+      throw new Error(`Missing ${this.cfg.owsRestApiKeyEnv} for ows-rest signing`);
+    }
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (this.cfg.owsRestAuthMode === "x_api_key") {
+      headers["X-API-Key"] = token;
+    } else if (this.cfg.owsRestAuthMode === "raw") {
+      headers.Authorization = token;
+    } else {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    const res = await fetch(`${base}${signPath}`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        walletId,
+        chainId,
+        message,
+        encoding: "utf8",
+      }),
+    });
+    const text = await res.text();
+    if (!res.ok) {
+      throw new Error(`ows-rest sign failed HTTP ${res.status}: ${text}`);
+    }
+    let parsed: { signature?: string };
+    try {
+      parsed = JSON.parse(text) as { signature?: string };
+    } catch {
+      throw new Error(`ows-rest: invalid JSON: ${text.slice(0, 200)}`);
+    }
+    if (!parsed.signature) {
+      throw new Error("ows-rest: response missing signature");
+    }
+    return hexToBase58(parsed.signature);
+  }
+
   private async createWithLocalDev(walletName: string): Promise<WalletState> {
     const { privateKey, publicKey } = crypto.generateKeyPairSync("ed25519");
     const publicDer = publicKey.export({ format: "der", type: "spki" });
@@ -375,6 +475,15 @@ export class StablePayRuntime {
       );
     }
 
+    if (this.cfg.owsRestBaseUrl) {
+      availableDrivers.push("ows-rest");
+    }
+
+    if (owsCliOnPath()) {
+      availableDrivers.push("ows-cli");
+      availableDrivers.push("wsl-ows");
+    }
+
     availableDrivers.push("local-dev");
 
     let activeDriver: Exclude<RuntimeDriver, "auto"> = "local-dev";
@@ -385,11 +494,29 @@ export class StablePayRuntime {
       activeDriver = requestedDriver;
     } else if (availableDrivers.includes("ows-sdk")) {
       activeDriver = "ows-sdk";
+    } else if (
+      this.cfg.owsRestBaseUrl &&
+      process.env[this.cfg.owsRestApiKeyEnv] &&
+      availableDrivers.includes("ows-rest")
+    ) {
+      activeDriver = "ows-rest";
+    } else if (availableDrivers.includes("ows-cli")) {
+      activeDriver = "ows-cli";
     }
 
     if (activeDriver === "local-dev") {
       notes.push(
         "The plugin will use a local AES-256-GCM encrypted state file as the current development fallback. This is suitable for local OpenClaw demos, but it is not the final OWS custody model.",
+      );
+    }
+    if (activeDriver === "ows-cli" || activeDriver === "wsl-ows") {
+      notes.push(
+        "Using OWS CLI on PATH for signing (`ows sign message`). Ensure OWS_PASSPHRASE or an API token is set for unattended signing.",
+      );
+    }
+    if (activeDriver === "ows-rest") {
+      notes.push(
+        "Using HTTP signMessage against owsRestBaseUrl. Align request/response with your OWS access-layer implementation.",
       );
     }
 
@@ -477,6 +604,35 @@ function isMissingFile(error: unknown): boolean {
       "code" in error &&
       (error as NodeJS.ErrnoException).code === "ENOENT",
   );
+}
+
+function owsCliOnPath(): boolean {
+  const r = spawnSync("ows", ["--version"], { encoding: "utf8", timeout: 5000 });
+  if (r.status === 0) return true;
+  const h = spawnSync("ows", ["help"], { encoding: "utf8", timeout: 5000 });
+  return h.status === 0;
+}
+
+function signWithOwsCli(walletName: string, chain: string, message: string): string {
+  const result = spawnSync(
+    "ows",
+    ["sign", "message", "--wallet", walletName, "--chain", chain, "--message", message, "--json"],
+    { encoding: "utf8", maxBuffer: 16 * 1024 * 1024, env: process.env },
+  );
+  const errText = (result.stderr || result.stdout || result.error?.message || "").trim();
+  if (result.status !== 0) {
+    throw new Error(`ows sign message failed (exit ${result.status}): ${errText || "no output"}`);
+  }
+  let parsed: { signature?: string };
+  try {
+    parsed = JSON.parse(result.stdout || "{}") as { signature?: string };
+  } catch {
+    throw new Error(`ows sign message: invalid JSON: ${(result.stdout || "").slice(0, 200)}`);
+  }
+  if (!parsed.signature) {
+    throw new Error("ows sign message: JSON missing signature field");
+  }
+  return hexToBase58(parsed.signature);
 }
 
 function hexToBase58(hex: string): string {

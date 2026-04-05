@@ -1,4 +1,4 @@
-﻿import os from "node:os";
+import os from "node:os";
 import path from "node:path";
 
 import type { PluginConfig } from "./types.js";
@@ -10,6 +10,9 @@ const DEFAULT_MASTER_KEY_ENV = "STABLEPAY_PLUGIN_MASTER_KEY";
 const DEFAULT_OWS_PASSPHRASE_ENV = "STABLEPAY_OWS_PASSPHRASE";
 const DEFAULT_WALLET_NAME_PREFIX = "stablepay";
 const DEFAULT_DID_REGISTER_PATH = "/api/v1/did/register";
+const DEFAULT_OWS_REST_SIGN_PATH = "/v1/sign/message";
+const DEFAULT_OWS_REST_API_KEY_ENV = "STABLEPAY_OWS_REST_API_KEY";
+const DEFAULT_OWS_REST_CHAIN_ID = "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp";
 
 export function getPluginConfig(api: any): Required<PluginConfig> {
   const raw = (api?.pluginConfig ?? {}) as PluginConfig;
@@ -30,7 +33,12 @@ export function getPluginConfig(api: any): Required<PluginConfig> {
     owsRuntime: raw.owsRuntime ?? "auto",
     walletNamePrefix: raw.walletNamePrefix ?? DEFAULT_WALLET_NAME_PREFIX,
     didRegisterPath: raw.didRegisterPath ?? DEFAULT_DID_REGISTER_PATH,
-    allowLegacyDidCreateFallback: raw.allowLegacyDidCreateFallback ?? false,
+    owsRestBaseUrl: raw.owsRestBaseUrl ? normalizeBaseUrl(raw.owsRestBaseUrl) : "",
+    owsRestSignPath: raw.owsRestSignPath ?? DEFAULT_OWS_REST_SIGN_PATH,
+    owsRestApiKeyEnv: raw.owsRestApiKeyEnv ?? DEFAULT_OWS_REST_API_KEY_ENV,
+    owsRestAuthMode: raw.owsRestAuthMode ?? "bearer",
+    owsRestWalletId: raw.owsRestWalletId ?? "",
+    owsRestChainId: raw.owsRestChainId ?? DEFAULT_OWS_REST_CHAIN_ID,
   };
 }
 

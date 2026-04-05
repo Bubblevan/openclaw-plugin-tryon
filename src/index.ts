@@ -11,7 +11,6 @@ import type {
   BuildPaymentPolicyParams,
   ConfigurePaymentLimitsParams,
   CreateLocalWalletParams,
-  CreateWalletParams,
   ExecutePaidSkillDemoParams,
   RegisterLocalDidParams,
   SeedTweetParams,
@@ -23,10 +22,10 @@ import type {
 import { buildVerifyLink, extractHandleFromTweetUrl, formatJson } from "./utils.js";
 
 export default definePluginEntry({
-  id: "stablepay-mock-plugin",
-  name: "StablePay Local Wallet Plugin",
+  id: "stablepay",
+  name: "StablePay",
   description:
-    "OpenClaw plugin for StablePay local wallet runtime, DID registration, mock X verification, and local signing flows.",
+    "StablePay wallet runtime, client-side DID registration, OWS/local signing, and payment flows for OpenClaw.",
   register(api) {
     const cfg = getPluginConfig(api);
     const client = new StablePayClient(cfg);
@@ -62,7 +61,7 @@ export default definePluginEntry({
       label: "Create Local Wallet",
       name: "stablepay_create_local_wallet",
       description:
-        "Create a StablePay local wallet for OpenClaw. Prefers OWS when the runtime is supported, otherwise falls back to the local encrypted dev runtime.",
+        "Create a StablePay local wallet for OpenClaw. Uses OWS SDK, OWS CLI (WSL), configurable OWS REST sign service, or local-dev encrypted key in that order when runtime is auto.",
       parameters: Type.Object(
         {
           user_id: Type.Optional(Type.String({ description: "Stable user identifier used in the wallet name, for example alice." })),
@@ -73,8 +72,18 @@ export default definePluginEntry({
               Type.Literal("ows-sdk"),
               Type.Literal("ows-cli"),
               Type.Literal("wsl-ows"),
+              Type.Literal("ows-rest"),
               Type.Literal("local-dev"),
             ]),
+          ),
+          public_key: Type.Optional(
+            Type.String({
+              description:
+                "Required for ows-cli, wsl-ows, ows-rest: Solana public key Base58 from OWS (`ows wallet list`).",
+            }),
+          ),
+          ows_wallet_id: Type.Optional(
+            Type.String({ description: "OWS wallet UUID for ows-rest when not set in plugin config." }),
           ),
         },
         { additionalProperties: false },
@@ -117,35 +126,19 @@ export default definePluginEntry({
           }
 
           let registered;
-          try {
-            registered = await client.registerLocalDid(
-              {
-                user_type: params.user_type ?? "agent",
-                public_key: status.wallet.wallet_address,
-                wallet_address: status.wallet.wallet_address,
-                wallet_id: status.wallet.wallet_id,
-                metadata: {
-                  sign_runtime: status.active_driver,
-                  source: "stablepay-openclaw-plugin",
-                },
-              },
-              params.register_path,
-            );
-          } catch (error) {
-            if (!cfg.allowLegacyDidCreateFallback) {
-              throw error;
-            }
-
-            const fallback = await client.createMockDid({
-              did: status.wallet.did,
+          registered = await client.registerLocalDid(
+            {
+              user_type: params.user_type ?? "agent",
+              public_key: status.wallet.wallet_address,
               wallet_address: status.wallet.wallet_address,
-            });
-
-            registered = {
-              ...fallback,
               wallet_id: status.wallet.wallet_id,
-            };
-          }
+              metadata: {
+                sign_runtime: status.active_driver,
+                source: "@stablepay/openclaw-plugin",
+              },
+            },
+            params.register_path,
+          );
 
           await runtime.registerWallet(registered);
 
@@ -409,40 +402,6 @@ export default definePluginEntry({
           ].join("\n"));
         } catch (error) {
           return errorResult("Failed to execute the paid skill demo", error);
-        }
-      },
-    });
-
-    api.registerTool({
-      label: "Create Mock Wallet",
-      name: "stablepay_create_mock_wallet",
-      description: "Legacy mock tool: create a StablePay DID and wallet for the first-registration chain (no X verification / no reward).",
-      parameters: Type.Object(
-        {
-          did: Type.Optional(Type.String({ description: "Optional custom DID. If omitted, the backend will generate one." })),
-          wallet_address: Type.Optional(
-            Type.String({ description: "Optional custom wallet address. If omitted, the backend will generate one." }),
-          ),
-        },
-        { additionalProperties: false },
-      ),
-      async execute(_id, params: CreateWalletParams) {
-        try {
-          const created = await client.createMockDid({
-            did: params.did || "",
-            wallet_address: params.wallet_address || "",
-          });
-
-          return textResult([
-            `Legacy StablePay mock registration completed successfully.`,
-            `DID: ${created.did}`,
-            `Wallet: ${created.wallet_address}`,
-            `Next step: prefer stablepay_create_local_wallet + stablepay_register_local_did for the OWS-oriented flow.`,
-            `JSON:`,
-            formatJson(created),
-          ].join("\n"));
-        } catch (error) {
-          return errorResult("Failed to create mock wallet", error);
         }
       },
     });

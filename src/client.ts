@@ -23,17 +23,6 @@ export class StablePayHttpError extends Error {
 export class StablePayClient {
   constructor(private readonly cfg: Required<PluginConfig>) {}
 
-  async createMockDid(input: { did: string; wallet_address: string }): Promise<DIDRecord> {
-    const metadata: Record<string, string> = {};
-    if (input?.did) metadata.requested_did = input.did;
-    if (input?.wallet_address) metadata.requested_wallet_address = input.wallet_address;
-
-    return this.post<DIDRecord>("/api/v1/did", {
-      user_type: "agent",
-      metadata,
-    });
-  }
-
   async registerLocalDid(
     input: {
       user_type: string;
