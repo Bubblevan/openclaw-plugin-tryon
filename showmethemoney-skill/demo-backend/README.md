@@ -37,7 +37,7 @@ npm start
 ## Recommended OpenClaw demo
 
 1. create a local wallet in the StablePay plugin
-2. register the local DID through `POST /api/v1/did/register`
+2. register the local DID through `POST /api/v1/did` (or alias `POST /api/v1/did/register`)
 3. configure payment limits
 4. call `stablepay_execute_paid_skill_demo`
 

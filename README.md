@@ -9,16 +9,15 @@ OpenClaw plugin that handles the client-side wallet, signing, and payment-policy
 ```json
 {
   "requested_driver": "auto",
-  "active_driver": "local-dev",
-  "available_drivers": ["local-dev"],
+  "active_driver": "ows-cli",
+  "available_drivers": ["ows-cli", "wsl-ows"],
   "local_state_path": "/home/bubblevan/.stablepay-openclaw/stablepay-local-state.enc",
   "has_wallet": false,
   "wallet": null,
   "payment_config": null,
   "policy": null,
   "notes": [
-    "OWS Node SDK could not be loaded in this environment. On the current Windows machine, the official package does not ship a win32 native binding yet.",
-    "The plugin will use a local AES-256-GCM encrypted state file as the current development fallback. This is suitable for local OpenClaw demos, but it is not the final OWS custody model."
+    "OWS Node SDK could not be loaded in this environment. On the current Windows machine, the official package does not ship a win32 native binding yet."
   ]
 }
 ```
@@ -27,10 +26,10 @@ OpenClaw plugin that handles the client-side wallet, signing, and payment-policy
 
 | API | 用途 | 私钥位置 |
 |-----|------|----------|
-| **`POST /api/v1/did/register`**（`stablepay_register_local_did`） | **推荐** | 客户端 / OWS Vault；服务端只存公钥 |
-| **`POST /api/v1/did`**（`stablepay_create_mock_wallet`） | 服务端托管演示 | 加密写入 did-service 数据库；响应**不含**私钥 |
+| **`POST /api/v1/did`**（默认 `didRegisterPath`） | **契约主路径**（PRD/tech）；`stablepay_register_local_did` | 客户端 / OWS Vault；服务端只存公钥 |
+| **`POST /api/v1/did/register`** | 与上一行**同一逻辑**的兼容别名 | 同上 |
 
-生产与 Agent 场景请始终使用 **register** 路径。Gateway 可通过 `features.allow_did_create: false` 关闭托管创建（见 [api-gateway/docs/did-flow.md](../api-gateway/docs/did-flow.md)）。
+服务端不生成、不托管用户私钥。路由说明见 [api-gateway/docs/did-flow.md](../api-gateway/docs/did-flow.md)。
 
 ## Runtime model
 
@@ -39,9 +38,8 @@ OpenClaw plugin that handles the client-side wallet, signing, and payment-policy
 | `ows-sdk` | `@open-wallet-standard/core` 可加载 | In-process 签名（Linux/macOS 等） |
 | `ows-rest` | 配置了 `owsRestBaseUrl` + `STABLEPAY_OWS_REST_API_KEY`（或自定义 env） | HTTP `SignMessageRequest` → hex `signature` |
 | `ows-cli` / `wsl-ows` | `ows` 在 PATH 且可选用 | 子进程 `ows sign message --json` |
-| `local-dev` | 兜底 | AES-256-GCM 加密状态文件 `~/.stablepay-openclaw/` |
-
-`auto` 优先级：`ows-sdk` →（若配置了 REST 且存在 API key）`ows-rest` → `ows-cli` → `local-dev`。Windows 上常无 OWS 原生绑定，会落到 `local-dev` 或你在 WSL 里用 `ows-cli`。
+`auto` 优先级：`ows-sdk` →（若配置了 REST 且存在 API key）`ows-rest` → `ows-cli`。  
+如果三者都不可用会直接报错（不再降级 fallback）。
 
 WSL 端到端步骤见 [docs/ows-wsl-e2e.md](docs/ows-wsl-e2e.md)。
 
@@ -94,7 +92,7 @@ After that you can install directly from the Windows path.
 
 ## Required environment variable
 
-Set `STABLEPAY_PLUGIN_MASTER_KEY` before using the local wallet runtime. The plugin uses this to derive the AES-256-GCM key for `stablepay-local-state.enc`.
+Set `STABLEPAY_PLUGIN_MASTER_KEY` so the plugin can encrypt local state metadata (`stablepay-local-state.enc`).
 
 ```bash
 # bash / WSL
@@ -106,7 +104,7 @@ export STABLEPAY_PLUGIN_MASTER_KEY="replace-with-a-long-random-secret"
 $env:STABLEPAY_PLUGIN_MASTER_KEY = "replace-with-a-long-random-secret"
 ```
 
-If this variable is not set, `stablepay_create_local_wallet` will fail.
+If this variable is not set, StablePay tools that persist state (including wallet binding) will fail.
 
 Optional (only needed if you run a supported OWS SDK runtime):
 
@@ -129,8 +127,7 @@ All fields are optional. The plugin falls back to the defaults shown below if co
           "verifyPageBaseUrl": "http://127.0.0.1:3000/verify",
           "owsRuntime": "auto",
           "walletNamePrefix": "stablepay",
-          "didRegisterPath": "/api/v1/did/register",
-          "allowLegacyDidCreateFallback": false,
+          "didRegisterPath": "/api/v1/did",
           "owsRestBaseUrl": "",
           "owsRestSignPath": "/v1/sign/message",
           "owsRestWalletId": ""
@@ -150,23 +147,12 @@ All fields are optional. The plugin falls back to the defaults shown below if co
 | Tool | What it does |
 |------|-------------|
 | `stablepay_runtime_status` | Show active driver, wallet presence, state path, payment config, policy |
-| `stablepay_create_local_wallet` | Generate an Ed25519 keypair, encrypt and save to local state file |
+| `stablepay_create_local_wallet` | Create or bind an OWS wallet (OWS-only, no fallback runtime) |
 | `stablepay_register_local_did` | POST the local public key to `backendBaseUrl/didRegisterPath` to create a backend DID record |
 | `stablepay_configure_payment_limits` | Save single-purchase limit and auto-purchase threshold to local state |
 | `stablepay_build_payment_policy` | Assemble a payment policy manifest from local wallet + limits |
-| `stablepay_sign_message` | Sign a message with the local private key (key never leaves the state file) |
-| `stablepay_execute_paid_skill_demo` | Exercise the `verify → 402 → pay → retry → 200` chain against `showmethemoney-skill/demo-backend` |
-
-### Legacy mock tools (A1 downgraded flow)
-
-| Tool | What it does |
-|------|-------------|
-| `stablepay_create_mock_wallet` | POST to `POST /api/v1/did` and return DID + wallet address (no X verification, no reward) |
-| `stablepay_generate_verify_link` | Build a `verify?did=...` URL for manual testing |
-| `stablepay_seed_mock_tweet` | Seed a mock tweet record for X verification testing |
-| `stablepay_verify_x_mock` | Submit mock X verification |
-| `stablepay_query_balance` | Query USDC balance via `GET /api/v1/balance` |
-| `stablepay_get_verify_status` | Check X verification status |
+| `stablepay_sign_message` | Sign gateway/business canonical payload through the active wallet provider (OWS first) |
+| `stablepay_execute_paid_skill_demo` | Exercise `verify → 402 → OWS message signing → /api/v1/pay → retry → 200` |
 
 ## Test sequence
 
@@ -179,14 +165,6 @@ Call stablepay_runtime_status and summarize only the wallet-related fields.
 ```
 
 Expected after `create_local_wallet`: `has_wallet: true`, `wallet` not null.
-
-### A1 downgraded flow (DID creation only, no X verification)
-
-```
-Call stablepay_create_mock_wallet and show the returned DID and wallet address.
-```
-
-Hits `POST /api/v1/did` on api-gateway → did-service. No X verification or USDC reward step.
 
 ### A2 prep flow
 
@@ -213,7 +191,7 @@ Then in OpenClaw:
 Call stablepay_execute_paid_skill_demo and show the full payment flow result.
 ```
 
-Expected chain: `verify → 402 Payment Required → sign + pay → retry → 200 OK`.
+Expected chain: `verify → 402 Payment Required → OWS sign business + gateway canonical → /api/v1/pay → retry → 200 OK`.
 
 ## Troubleshooting
 

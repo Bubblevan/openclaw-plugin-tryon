@@ -1,5 +1,5 @@
 {
-  "id": "stablepay",
+  "id": "stablepayai",
   "name": "StablePay",
   "description": "StablePay wallet, DID registration (client-held keys), OWS/local signing, and payment flows.",
   "version": "0.3.0",
@@ -49,7 +49,7 @@
       },
       "owsRuntime": {
         "type": "string",
-        "enum": ["auto", "ows-sdk", "ows-cli", "wsl-ows", "ows-rest", "local-dev"],
+        "enum": ["auto", "ows-sdk", "ows-cli", "wsl-ows", "ows-rest"],
         "default": "auto",
         "description": "Preferred local signing runtime"
       },
@@ -112,11 +112,11 @@
     },
     "owsRuntime": {
       "label": "Signing runtime",
-      "help": "Prefer auto. Uses OWS SDK, OWS CLI, REST, or local-dev encrypted keystore"
+      "help": "Prefer auto. Uses OWS SDK, OWS CLI, or OWS REST."
     },
     "didRegisterPath": {
       "label": "DID register path",
-      "help": "Must be POST /api/v1/did/register (server never stores private keys)"
+      "help": "Default POST /api/v1/did (PRD/tech contract). /api/v1/did/register is an equivalent alias. Server never stores user private keys."
     }
   }
 }

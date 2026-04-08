@@ -5,8 +5,10 @@ import path from "node:path";
 const BASE58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 export class StablePayRuntime {
     cfg;
+    owsProvider;
     constructor(cfg) {
         this.cfg = cfg;
+        this.owsProvider = new OwsWalletProvider(this);
     }
     async getStatus() {
         const availability = await this.detectAvailability();
@@ -44,28 +46,8 @@ export class StablePayRuntime {
         const state = await this.loadState();
         const availability = await this.detectAvailability(params.runtime);
         const walletName = buildWalletName(this.cfg.walletNamePrefix, params.user_id, params.wallet_name);
-        let wallet;
-        if (availability.activeDriver === "ows-cli" || availability.activeDriver === "wsl-ows") {
-            const pk = params.public_key?.trim();
-            if (!pk) {
-                throw new Error("public_key is required for ows-cli / wsl-ows: use the Solana Base58 address from `ows wallet list` (same as OWS account address).");
-            }
-            wallet = this.createOwsCliLinkedWallet(walletName, pk, availability.activeDriver);
-        }
-        else if (availability.activeDriver === "ows-rest") {
-            const pk = params.public_key?.trim();
-            const wid = (params.ows_wallet_id?.trim() || this.cfg.owsRestWalletId).trim();
-            if (!pk || !wid) {
-                throw new Error("ows-rest requires public_key and ows_wallet_id (or set plugin config owsRestWalletId).");
-            }
-            wallet = this.createOwsRestLinkedWallet(walletName, pk, wid);
-        }
-        else if (availability.activeDriver === "ows-sdk") {
-            wallet = await this.createWithOwsSdk(walletName);
-        }
-        else {
-            wallet = await this.createWithLocalDev(walletName);
-        }
+        const provider = this.providerForDriver(availability.activeDriver);
+        const wallet = await provider.createWallet(walletName, params, availability.activeDriver);
         state.wallet = wallet;
         await this.saveState(state);
         return {
@@ -183,27 +165,7 @@ export class StablePayRuntime {
         const nonce = params.nonce ?? crypto.randomUUID();
         const append = params.append_timestamp_nonce ?? false;
         const payload = append ? `${params.message}${timestamp}${nonce}` : params.message;
-        let signature;
-        if (state.runtimeDriver === "ows-sdk") {
-            const ows = await this.tryLoadOwsSdk();
-            if (!ows)
-                throw new Error("OWS SDK runtime is not available in the current environment");
-            signature = hexToBase58(ows.signMessage(state.walletName, params.chain ?? "solana", payload, this.getOptionalEnv(this.cfg.owsPassphraseEnv), "utf8", 0, this.cfg.owsVaultPath || undefined).signature);
-        }
-        else if (state.runtimeDriver === "ows-cli" || state.runtimeDriver === "wsl-ows") {
-            signature = signWithOwsCli(state.walletName, params.chain ?? "solana", payload);
-        }
-        else if (state.runtimeDriver === "ows-rest") {
-            const chainId = params.chain && params.chain.includes(":") ? params.chain : this.cfg.owsRestChainId;
-            signature = await this.signWithOwsRest(chainId, state.walletId, payload);
-        }
-        else {
-            if (!state.localDevPrivateKeyPem) {
-                throw new Error("Local dev private key not found in local state");
-            }
-            const raw = crypto.sign(null, Buffer.from(payload, "utf8"), state.localDevPrivateKeyPem);
-            signature = base58Encode(raw);
-        }
+        const signature = await this.providerForWallet(state).signMessage(state, { ...params, message: payload });
         return {
             did: state.did,
             wallet_id: state.walletId,
@@ -216,6 +178,15 @@ export class StablePayRuntime {
             nonce,
             appended_timestamp_nonce: append,
         };
+    }
+    getConfig() {
+        return this.cfg;
+    }
+    providerForDriver(activeDriver) {
+        return this.owsProvider;
+    }
+    providerForWallet(state) {
+        return this.owsProvider;
     }
     async createWithOwsSdk(walletName) {
         const ows = await this.tryLoadOwsSdk();
@@ -233,6 +204,7 @@ export class StablePayRuntime {
             publicKey: solanaAccount.address,
             walletAddress: solanaAccount.address,
             runtimeDriver: "ows-sdk",
+            provider: "ows",
             createdAt: wallet.createdAt || new Date().toISOString(),
         };
     }
@@ -244,6 +216,7 @@ export class StablePayRuntime {
             publicKey: publicKeyBase58,
             walletAddress: publicKeyBase58,
             runtimeDriver: driver,
+            provider: "ows",
             createdAt: new Date().toISOString(),
         };
     }
@@ -255,6 +228,7 @@ export class StablePayRuntime {
             publicKey: publicKeyBase58,
             walletAddress: publicKeyBase58,
             runtimeDriver: "ows-rest",
+            provider: "ows",
             createdAt: new Date().toISOString(),
         };
     }
@@ -303,22 +277,6 @@ export class StablePayRuntime {
         }
         return hexToBase58(parsed.signature);
     }
-    async createWithLocalDev(walletName) {
-        const { privateKey, publicKey } = crypto.generateKeyPairSync("ed25519");
-        const publicDer = publicKey.export({ format: "der", type: "spki" });
-        const rawPublic = Buffer.from(publicDer).subarray(Buffer.from(publicDer).length - 32);
-        const publicKeyBase58 = base58Encode(rawPublic);
-        return {
-            walletId: `localdev_${crypto.randomUUID()}`,
-            walletName,
-            did: `did:solana:${publicKeyBase58}`,
-            publicKey: publicKeyBase58,
-            walletAddress: publicKeyBase58,
-            runtimeDriver: "local-dev",
-            createdAt: new Date().toISOString(),
-            localDevPrivateKeyPem: privateKey.export({ format: "pem", type: "pkcs8" }).toString(),
-        };
-    }
     async requireWalletState() {
         const state = await this.loadState();
         if (!state.wallet)
@@ -343,8 +301,7 @@ export class StablePayRuntime {
             availableDrivers.push("ows-cli");
             availableDrivers.push("wsl-ows");
         }
-        availableDrivers.push("local-dev");
-        let activeDriver = "local-dev";
+        let activeDriver;
         if (requestedDriver !== "auto") {
             if (!availableDrivers.includes(requestedDriver)) {
                 throw new Error(`Requested runtime '${requestedDriver}' is not available`);
@@ -362,8 +319,8 @@ export class StablePayRuntime {
         else if (availableDrivers.includes("ows-cli")) {
             activeDriver = "ows-cli";
         }
-        if (activeDriver === "local-dev") {
-            notes.push("The plugin will use a local AES-256-GCM encrypted state file as the current development fallback. This is suitable for local OpenClaw demos, but it is not the final OWS custody model.");
+        else {
+            throw new Error("No OWS runtime available. Install OWS SDK/CLI or configure ows-rest; fallback runtimes are disabled.");
         }
         if (activeDriver === "ows-cli" || activeDriver === "wsl-ows") {
             notes.push("Using OWS CLI on PATH for signing (`ows sign message`). Ensure OWS_PASSPHRASE or an API token is set for unattended signing.");
@@ -391,6 +348,12 @@ export class StablePayRuntime {
             const encrypted = await fs.readFile(this.cfg.localStatePath, "utf8");
             const json = decryptJson(encrypted, this.requireMasterKey());
             const parsed = JSON.parse(json);
+            if (parsed.wallet) {
+                if (parsed.wallet.runtimeDriver === "local-dev") {
+                    throw new Error("Detected deprecated local-dev wallet state. Recreate wallet with OWS runtime.");
+                }
+                parsed.wallet.provider = "ows";
+            }
             return { ...parsed, version: 1 };
         }
         catch (error) {
@@ -415,6 +378,52 @@ export class StablePayRuntime {
     getOptionalEnv(name) {
         const value = process.env[name];
         return value ? value : undefined;
+    }
+}
+class OwsWalletProvider {
+    rt;
+    name = "ows";
+    constructor(rt) {
+        this.rt = rt;
+    }
+    async createWallet(walletName, params, activeDriver) {
+        if (activeDriver === "ows-sdk") {
+            return this.rt.createWithOwsSdk(walletName);
+        }
+        if (activeDriver === "ows-cli" || activeDriver === "wsl-ows") {
+            const pk = params.public_key?.trim();
+            if (!pk) {
+                throw new Error("public_key is required for ows-cli / wsl-ows: use Solana Base58 address from `ows wallet list`.");
+            }
+            return this.rt.createOwsCliLinkedWallet(walletName, pk, activeDriver);
+        }
+        if (activeDriver === "ows-rest") {
+            const cfg = this.rt.getConfig();
+            const pk = params.public_key?.trim();
+            const wid = (params.ows_wallet_id?.trim() || cfg.owsRestWalletId).trim();
+            if (!pk || !wid) {
+                throw new Error("ows-rest requires public_key and ows_wallet_id (or plugin config owsRestWalletId).");
+            }
+            return this.rt.createOwsRestLinkedWallet(walletName, pk, wid);
+        }
+        throw new Error(`unsupported OWS runtime: ${activeDriver}`);
+    }
+    async signMessage(state, params) {
+        const cfg = this.rt.getConfig();
+        if (state.runtimeDriver === "ows-sdk") {
+            const ows = await this.rt.tryLoadOwsSdk();
+            if (!ows)
+                throw new Error("OWS SDK runtime is not available in the current environment");
+            return hexToBase58(ows.signMessage(state.walletName, params.chain ?? "solana", params.message, this.rt.getOptionalEnv(cfg.owsPassphraseEnv), "utf8", 0, cfg.owsVaultPath || undefined).signature);
+        }
+        if (state.runtimeDriver === "ows-cli" || state.runtimeDriver === "wsl-ows") {
+            return signWithOwsCli(state.walletName, params.chain ?? "solana", params.message);
+        }
+        if (state.runtimeDriver === "ows-rest") {
+            const chainId = params.chain && params.chain.includes(":") ? params.chain : cfg.owsRestChainId;
+            return this.rt.signWithOwsRest(chainId, state.walletId, params.message);
+        }
+        throw new Error(`runtime ${state.runtimeDriver} is not handled by OwsWalletProvider`);
     }
 }
 function buildWalletName(prefix, userId, explicitName) {

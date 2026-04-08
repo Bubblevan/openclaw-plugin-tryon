@@ -1,4 +1,4 @@
-export type RuntimeDriver = "auto" | "ows-sdk" | "ows-cli" | "wsl-ows" | "ows-rest" | "local-dev";
+export type RuntimeDriver = "auto" | "ows-sdk" | "ows-cli" | "wsl-ows" | "ows-rest";
 
 export type OwsRestAuthMode = "bearer" | "x_api_key" | "raw";
 
@@ -67,6 +67,8 @@ export type SignMessageParams = {
   nonce?: string;
   append_timestamp_nonce?: boolean;
 };
+
+export type WalletProviderName = "ows";
 
 export type ExecutePaidSkillDemoParams = {
   execute_url?: string;

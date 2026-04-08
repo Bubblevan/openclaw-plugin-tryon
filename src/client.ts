@@ -63,7 +63,7 @@ export class StablePayClient {
     return { status: result.status, body: result.payload };
   }
 
-  async paySigned(body: Record<string, unknown>, headers: RequestHeaders): Promise<any> {
+  async initiatePayment(body: Record<string, unknown>, headers: RequestHeaders): Promise<any> {
     return this.request<any>("POST", "/api/v1/pay", body, headers);
   }
 

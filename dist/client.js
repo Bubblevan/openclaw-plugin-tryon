@@ -34,7 +34,7 @@ export class StablePayClient {
         const result = await this.rawRequest("GET", target.toString(), undefined, undefined, [402]);
         return { status: result.status, body: result.payload };
     }
-    async paySigned(body, headers) {
+    async initiatePayment(body, headers) {
         return this.request("POST", "/api/v1/pay", body, headers);
     }
     async getSales(skillDid, headers) {

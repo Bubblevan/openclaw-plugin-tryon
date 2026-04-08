@@ -11,8 +11,7 @@ const cfg = {
   verifyPageBaseUrl: 'http://127.0.0.1:3000/verify',
   owsRuntime: 'auto',
   walletNamePrefix: 'stablepay',
-  didRegisterPath: '/api/v1/did/register',
-  allowLegacyDidCreateFallback: false,
+  didRegisterPath: '/api/v1/did',
   localStatePath: DEFAULT_STATE_FILE,
   localStateKeyEnv: 'STABLEPAY_PLUGIN_MASTER_KEY',
   owsPassphraseEnv: 'STABLEPAY_OWS_PASSPHRASE',
@@ -88,13 +87,10 @@ async function executePaidSkillDemo() {
     nonce: paymentNonce
   };
   
-  const payBody = JSON.stringify(payPayload);
   const gatewayTimestamp = new Date().toISOString();
   const gatewayNonce = `${Date.now()}-${Math.random().toString(16).slice(2, 10)}-gw`;
+  const payBody = JSON.stringify(payPayload);
   const canonical = `POST\n${requirement.payment_endpoint || '/api/v1/pay'}\n\n${createHash('sha256').update(payBody, 'utf8').digest('hex')}`;
-  
-  console.log('  Canonical:', canonical.substring(0, 50) + '...');
-  
   const gatewaySignature = await runtime.signMessage({
     message: canonical,
     chain: 'solana',
@@ -107,7 +103,7 @@ async function executePaidSkillDemo() {
   
   // 步骤 4: 发送支付请求
   console.log('步骤 4: 发送支付请求...');
-  const payResponse = await client.paySigned(payPayload, {
+  const payResponse = await client.initiatePayment(payPayload, {
     'X-StablePay-DID': agentDid,
     'X-StablePay-Signature': gatewaySignature.signature,
     'X-StablePay-Timestamp': gatewayTimestamp,

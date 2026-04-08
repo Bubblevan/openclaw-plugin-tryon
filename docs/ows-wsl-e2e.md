@@ -33,11 +33,12 @@ export OWS_PASSPHRASE="your-passphrase-or-ows_key_..."
 - `wallet_name`: `stablepay-agent`（与 OWS 中名称一致）
 - `public_key`: 上一步 Solana 地址（Base58）
 
-然后调用 `stablepay_register_local_did` 将公钥登记到 `POST /api/v1/did/register`。
+然后调用 `stablepay_register_local_did` 将公钥登记到 **`POST /api/v1/did`**（契约主路径；`/api/v1/did/register` 为等价别名）。
 
 ## 4. 支付签名
 
-`stablepay_execute_paid_skill_demo` 等工具内部会构造 Gateway canonical 并调用 `stablepay_sign_message` 等价逻辑；在 **ows-cli** 驱动下会执行：
+`stablepay_execute_paid_skill_demo` 等工具内部会直接提交 `POST /api/v1/pay`。  
+Agent 侧所有签名（业务授权与 Gateway canonical）都通过 `stablepay_sign_message` 完成；在 **ows-cli** 驱动下会执行：
 
 `ows sign message --wallet <name> --chain solana --message '<canonical>' --json`
 
@@ -47,15 +48,4 @@ export OWS_PASSPHRASE="your-passphrase-or-ows_key_..."
 
 若你自有或上游提供符合 `SignMessageRequest` 的 HTTP 服务，在插件 config 中设置 `owsRestBaseUrl`、`owsRestSignPath`（默认 `/v1/sign/message`）、`owsRestWalletId`，并导出 `STABLEPAY_OWS_REST_API_KEY`。使用 `runtime: "ows-rest"` 与 `public_key` / `ows_wallet_id` 绑定钱包。
 
-## 6. 关闭服务端托管创建（生产建议）
-
-在 api-gateway `configs/config.yaml` 设置：
-
-```yaml
-features:
-  allow_did_create: false
-```
-
-或使用环境变量 `STABLEPAY_FEATURES_ALLOW_DID_CREATE=false`。此后仅允许 `POST /api/v1/did/register`。
-
-详见仓库根目录 [api-gateway/docs/did-flow.md](../../api-gateway/docs/did-flow.md) 与 [did-service/DID_MODEL.md](../../did-service/DID_MODEL.md)。
+详见 [api-gateway/docs/did-flow.md](../../api-gateway/docs/did-flow.md) 与 [did-service/DID_MODEL.md](../../did-service/DID_MODEL.md)。

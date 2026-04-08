@@ -36,7 +36,7 @@ export default definePluginEntry({
     api.registerTool({
       label: "StablePay Runtime Status",
       name: "stablepay_runtime_status",
-      description: "Show StablePay local runtime status, configured state path, active wallet, and OWS/local-dev availability.",
+      description: "Show StablePay runtime status, configured state path, active wallet, and OWS runtime availability.",
       parameters: Type.Object({}, { additionalProperties: false }),
       async execute() {
         try {
@@ -61,7 +61,7 @@ export default definePluginEntry({
       label: "Create Local Wallet",
       name: "stablepay_create_local_wallet",
       description:
-        "Create a StablePay local wallet for OpenClaw. Uses OWS SDK, OWS CLI (WSL), configurable OWS REST sign service, or local-dev encrypted key in that order when runtime is auto.",
+        "Create a StablePay wallet for OpenClaw using OWS runtime (SDK/CLI/REST).",
       parameters: Type.Object(
         {
           user_id: Type.Optional(Type.String({ description: "Stable user identifier used in the wallet name, for example alice." })),
@@ -73,7 +73,6 @@ export default definePluginEntry({
               Type.Literal("ows-cli"),
               Type.Literal("wsl-ows"),
               Type.Literal("ows-rest"),
-              Type.Literal("local-dev"),
             ]),
           ),
           public_key: Type.Optional(
@@ -114,7 +113,7 @@ export default definePluginEntry({
       parameters: Type.Object(
         {
           user_type: Type.Optional(Type.Union([Type.Literal("agent"), Type.Literal("developer")])),
-          register_path: Type.Optional(Type.String({ description: "Optional DID register API path override, for example /api/v1/did/register." })),
+          register_path: Type.Optional(Type.String({ description: "Optional DID register API path override; default /api/v1/did (contract). Use /api/v1/did/register for the alias." })),
         },
         { additionalProperties: false },
       ),
@@ -340,9 +339,9 @@ export default definePluginEntry({
             timestamp: unixTimestamp,
             nonce: paymentNonce,
           };
-          const payBody = JSON.stringify(payPayload);
           const gatewayTimestamp = new Date().toISOString();
           const gatewayNonce = `${Date.now()}-${Math.random().toString(16).slice(2, 10)}-gw`;
+          const payBody = JSON.stringify(payPayload);
           const canonical = `POST\n${requirement.payment_endpoint || "/api/v1/pay"}\n\n${createHash("sha256").update(payBody, "utf8").digest("hex")}`;
           const gatewaySignature = await runtime.signMessage({
             message: canonical,
@@ -352,7 +351,7 @@ export default definePluginEntry({
             append_timestamp_nonce: true,
           });
 
-          const payResponse = await client.paySigned(payPayload, {
+          const payResponse = await client.initiatePayment(payPayload, {
             "X-StablePay-DID": agentDid,
             "X-StablePay-Signature": gatewaySignature.signature,
             "X-StablePay-Timestamp": gatewayTimestamp,
