@@ -26,6 +26,11 @@ openclaw gateway restart
 
 开发联调（本地源码）可用 `--link`，但不是新人默认路径。
 
+命名说明（避免混淆）：
+
+- ClawHub 安装 slug：`stablepay-openclaw-plugin`
+- 插件 runtime id（manifest）：`stablepayai`
+
 ## 运行前准备
 
 ### 1) 启动 StablePay 后端
@@ -69,13 +74,14 @@ ows wallet list
 
 ## OpenClaw 配置示例（`~/.openclaw/openclaw.json`）
 
-> `plugins.entries` 的 key 以你本地 OpenClaw 识别结果为准，不要硬套历史键名。下面用 `<your_plugin_entry_key>` 占位。
+当前发布线（`stablepay-openclaw-plugin` 包）使用的 runtime id 是 `stablepayai`。  
+因此 `plugins.entries` 推荐直接使用 `stablepayai`（除非后续发布了新的 breaking package line）。
 
 ```json
 {
   "plugins": {
     "entries": {
-      "<your_plugin_entry_key>": {
+      "stablepayai": {
         "enabled": true,
         "config": {
           "backendBaseUrl": "http://127.0.0.1:28080",
@@ -194,8 +200,8 @@ openclaw tui
 
 ## 常见问题 / 排障
 
-1) 为什么 `openclaw.json` 里 key 对不上 README？
-- `plugins.entries` 的键可能由安装器/本地状态决定，不保证与 README 示例完全同名。以本地实际识别值为准。
+1) 为什么 `openclaw.json` 里提示 plugin id mismatch？
+- 当前 package slug 是 `stablepay-openclaw-plugin`，但 runtime id 仍是 `stablepayai`（兼容已发布版本）。请在 `plugins.entries` 使用 `stablepayai`。
 
 2) 为什么支付时报缺少 fee payer？
 - 未配置 `feePayerSolanaAddress` 且未导出 `STABLEPAY_FEE_PAYER_SOL`。

@@ -1,5 +1,5 @@
 {
-  "id": "stablepay-openclaw-plugin",
+  "id": "stablepayai",
   "name": "StablePay",
   "description": "StablePay wallet, DID registration (client-held keys), OWS/local signing, and payment flows.",
   "version": "0.3.2",

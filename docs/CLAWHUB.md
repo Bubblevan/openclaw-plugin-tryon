@@ -1,6 +1,11 @@
 # 发布到 ClawHub
 
-包名：**`@stablepay/openclaw-plugin`**（与 `package.json` 的 `name` 一致）。OpenClaw 内插件 id 为 **`stablepay`**（见 `openclaw.plugin.json`）。
+本仓库当前口径：
+
+- package slug（安装名）：`stablepay-openclaw-plugin`（见 `package.json.name`）
+- runtime id（manifest）：`stablepayai`（见 `openclaw.plugin.json.id`）
+
+> 注意：已发布 package line 下，runtime id 需保持稳定。
 
 ## 准备
 
@@ -32,7 +37,7 @@ clawhub package publish YOUR_ORG/stablepay-openclaw-plugin@v0.3.0
 ## WSL / 团队成员安装
 
 ```bash
-openclaw plugins install clawhub:@stablepay/openclaw-plugin
+openclaw plugins install clawhub:stablepay-openclaw-plugin
 openclaw gateway restart
 ```
 
