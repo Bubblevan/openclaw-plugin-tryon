@@ -3,6 +3,8 @@ import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 
+import { signSolanaMessageHexWithOwsCli } from "./ows_sign_tx.js";
+
 import type {
   BuildPaymentPolicyParams,
   ConfigurePaymentLimitsParams,
@@ -301,6 +303,45 @@ export class StablePayRuntime {
     };
   }
 
+  /**
+   * Sign Solana legacy transaction message bytes (hex, no 0x) for partial tx signing.
+   * Uses OWS `sign message --encoding hex` (or SDK / ows-rest with encoding hex).
+   */
+  async signSolanaTransactionMessageHex(messageHex: string): Promise<string> {
+    const state = await this.requireWalletState();
+    const cfg = this.cfg;
+    const clean = messageHex.replace(/^0x/i, "").trim();
+    if (!/^[0-9a-fA-F]+$/.test(clean) || clean.length % 2 !== 0) {
+      throw new Error("signSolanaTransactionMessageHex: message must be an even-length hex string");
+    }
+
+    if (state.runtimeDriver === "ows-sdk") {
+      const ows = await this.tryLoadOwsSdk();
+      if (!ows) throw new Error("OWS SDK runtime is not available in this environment");
+      const raw = ows.signMessage(
+        state.walletName,
+        "solana",
+        clean,
+        this.getOptionalEnv(cfg.owsPassphraseEnv),
+        "hex",
+        0,
+        cfg.owsVaultPath || undefined,
+      ).signature;
+      const s = String(raw).trim();
+      return s.startsWith("0x") ? s.slice(2) : s;
+    }
+
+    if (state.runtimeDriver === "ows-cli" || state.runtimeDriver === "wsl-ows") {
+      return signSolanaMessageHexWithOwsCli(state.walletName, clean);
+    }
+
+    if (state.runtimeDriver === "ows-rest") {
+      return this.signWithOwsRestHex(state.walletId, clean);
+    }
+
+    throw new Error(`signSolanaTransactionMessageHex: unsupported runtime ${state.runtimeDriver}`);
+  }
+
   getConfig(): Required<PluginConfig> {
     return this.cfg;
   }
@@ -373,6 +414,53 @@ export class StablePayRuntime {
       provider: "ows",
       createdAt: new Date().toISOString(),
     };
+  }
+
+  async signWithOwsRestHex(walletId: string, messageHex: string): Promise<string> {
+    const cfg = this.cfg;
+    const base = this.cfg.owsRestBaseUrl.replace(/\/+$/, "");
+    const signPath = this.cfg.owsRestSignPath.startsWith("/")
+      ? this.cfg.owsRestSignPath
+      : `/${this.cfg.owsRestSignPath}`;
+    const token = process.env[this.cfg.owsRestApiKeyEnv];
+    if (!token) {
+      throw new Error(`Missing ${this.cfg.owsRestApiKeyEnv} for ows-rest signing`);
+    }
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (this.cfg.owsRestAuthMode === "x_api_key") {
+      headers["X-API-Key"] = token;
+    } else if (this.cfg.owsRestAuthMode === "raw") {
+      headers.Authorization = token;
+    } else {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    const res = await fetch(`${base}${signPath}`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        walletId,
+        chainId: cfg.owsRestChainId,
+        message: messageHex,
+        encoding: "hex",
+      }),
+    });
+    const text = await res.text();
+    if (!res.ok) {
+      throw new Error(`ows-rest sign (hex) failed HTTP ${res.status}: ${text}`);
+    }
+    let parsed: { signature?: string };
+    try {
+      parsed = JSON.parse(text) as { signature?: string };
+    } catch {
+      throw new Error(`ows-rest: invalid JSON: ${text.slice(0, 200)}`);
+    }
+    if (!parsed.signature) {
+      throw new Error("ows-rest: response missing signature");
+    }
+    let sig = parsed.signature.trim();
+    if (sig.startsWith("0x")) sig = sig.slice(2);
+    return sig;
   }
 
   async signWithOwsRest(chainId: string, walletId: string, message: string): Promise<string> {

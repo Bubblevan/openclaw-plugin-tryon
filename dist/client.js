@@ -37,6 +37,28 @@ export class StablePayClient {
     async initiatePayment(body, headers) {
         return this.request("POST", "/api/v1/pay", body, headers);
     }
+    /** POST with pre-serialized JSON (stable SHA256 for gateway canonical). */
+    async postJsonRaw(path, rawJsonBody, headers) {
+        const { payload } = await this.rawRequest("POST", path, rawJsonBody, headers);
+        const obj = payload;
+        if (obj && typeof obj === "object" && "data" in obj) {
+            return obj.data;
+        }
+        return payload;
+    }
+    async fetchPayRequire(params) {
+        const q = new URLSearchParams({
+            skill_did: params.skill_did,
+            agent_did: params.agent_did,
+            skill_name: params.skill_name,
+            price: params.price,
+            currency: params.currency,
+        });
+        if (params.message)
+            q.set("message", params.message);
+        const { status, payload } = await this.rawRequest("GET", `/api/v1/pay/require?${q.toString()}`, undefined, undefined, [200, 402]);
+        return { status, payload };
+    }
     async getSales(skillDid, headers) {
         return this.request("GET", `/api/v1/sales?skill_did=${encodeURIComponent(skillDid)}`, undefined, headers);
     }
@@ -64,7 +86,7 @@ export class StablePayClient {
                     "Content-Type": "application/json",
                     ...(headers ?? {}),
                 },
-                body: body ? JSON.stringify(body) : undefined,
+                body: body === undefined ? undefined : typeof body === "string" ? body : JSON.stringify(body),
                 signal: controller.signal,
             });
             const text = await response.text();

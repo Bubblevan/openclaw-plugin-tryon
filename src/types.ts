@@ -4,6 +4,12 @@ export type OwsRestAuthMode = "bearer" | "x_api_key" | "raw";
 
 export type PluginConfig = {
   backendBaseUrl?: string;
+  /** Hotwallet / fee payer Solana address (must match blockchain-adapter). Env: STABLEPAY_FEE_PAYER_SOL */
+  feePayerSolanaAddress?: string;
+  /** Solana RPC for building SPL transfer (default devnet). */
+  solanaRpcUrl?: string;
+  /** SPL mint for USDC/USDT leg (default devnet USDC). */
+  splTokenMintAddress?: string;
   verifyPageBaseUrl?: string;
   requestTimeoutMs?: number;
   rewardAmount?: number;
@@ -74,6 +80,17 @@ export type ExecutePaidSkillDemoParams = {
   execute_url?: string;
   retry_attempts?: number;
   retry_delay_ms?: number;
+  /** When true, pay even if price exceeds auto-purchase threshold (still capped by single-purchase limit). */
+  confirm_over_threshold?: boolean;
+};
+
+export type PayViaGatewayParams = {
+  skill_did: string;
+  skill_name: string;
+  price: string;
+  currency?: "USDC" | "USDT";
+  message?: string;
+  confirm_over_threshold?: boolean;
 };
 
 export type SeedTweetParams = {

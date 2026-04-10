@@ -67,6 +67,42 @@ export class StablePayClient {
     return this.request<any>("POST", "/api/v1/pay", body, headers);
   }
 
+  /** POST with pre-serialized JSON (stable SHA256 for gateway canonical). */
+  async postJsonRaw(path: string, rawJsonBody: string, headers?: RequestHeaders): Promise<any> {
+    const { payload } = await this.rawRequest("POST", path, rawJsonBody, headers);
+    const obj = payload as any;
+    if (obj && typeof obj === "object" && "data" in obj) {
+      return obj.data as any;
+    }
+    return payload as any;
+  }
+
+  async fetchPayRequire(params: {
+    skill_did: string;
+    agent_did: string;
+    skill_name: string;
+    price: string;
+    currency: string;
+    message?: string;
+  }): Promise<{ status: number; payload: unknown }> {
+    const q = new URLSearchParams({
+      skill_did: params.skill_did,
+      agent_did: params.agent_did,
+      skill_name: params.skill_name,
+      price: params.price,
+      currency: params.currency,
+    });
+    if (params.message) q.set("message", params.message);
+    const { status, payload } = await this.rawRequest(
+      "GET",
+      `/api/v1/pay/require?${q.toString()}`,
+      undefined,
+      undefined,
+      [200, 402],
+    );
+    return { status, payload };
+  }
+
   async getSales(skillDid: string, headers?: RequestHeaders): Promise<any> {
     return this.request<any>("GET", `/api/v1/sales?skill_did=${encodeURIComponent(skillDid)}`, undefined, headers);
   }
@@ -105,7 +141,7 @@ export class StablePayClient {
           "Content-Type": "application/json",
           ...(headers ?? {}),
         },
-        body: body ? JSON.stringify(body) : undefined,
+        body: body === undefined ? undefined : typeof body === "string" ? body : JSON.stringify(body),
         signal: controller.signal,
       });
 

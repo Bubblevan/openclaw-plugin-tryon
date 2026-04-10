@@ -1,10 +1,9 @@
-import { createHash } from "node:crypto";
-
 import { Type } from "@sinclair/typebox";
 import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
 
 import { StablePayClient, StablePayHttpError } from "./client.js";
 import { getPluginConfig } from "./config.js";
+import { settlePaymentViaGateway } from "./pay_settlement.js";
 import { StablePayRuntime } from "./runtime.js";
 import type {
   BalanceParams,
@@ -12,6 +11,7 @@ import type {
   ConfigurePaymentLimitsParams,
   CreateLocalWalletParams,
   ExecutePaidSkillDemoParams,
+  PayViaGatewayParams,
   RegisterLocalDidParams,
   SeedTweetParams,
   SignMessageParams,
@@ -256,12 +256,18 @@ export default definePluginEntry({
       label: "Execute Paid Skill Demo",
       name: "stablepay_execute_paid_skill_demo",
       description:
-        "Call the local developer demo backend, handle HTTP 402, auto-pay through StablePay, then retry until the protected skill returns 200.",
+        "Call a demo skill URL; on HTTP 402, complete StablePay payment against api-gateway (default http://127.0.0.1:28080) using ows-pay.md flow: build SPL transfer, OWS sign tx message bytes, business sign with sha256(signed_tx_base64), gateway canonical POST /api/v1/pay. Requires fee payer in config or STABLEPAY_FEE_PAYER_SOL.",
       parameters: Type.Object(
         {
           execute_url: Type.Optional(Type.String({ description: "Demo backend execute URL. Defaults to http://127.0.0.1:8787/execute." })),
           retry_attempts: Type.Optional(Type.Integer({ minimum: 1, maximum: 20 })),
           retry_delay_ms: Type.Optional(Type.Integer({ minimum: 200, maximum: 10000 })),
+          confirm_over_threshold: Type.Optional(
+            Type.Boolean({
+              description:
+                "If true, pay even when price exceeds auto-purchase threshold (user confirmed in chat). Single-purchase limit still applies.",
+            }),
+          ),
         },
         { additionalProperties: false },
       ),
@@ -297,67 +303,40 @@ export default definePluginEntry({
           }
 
           const requirement = extractPaymentRequirement(firstAttempt.body);
-          const price = requirement.price || "1.00";
-          const currency = requirement.currency || status.payment_config.currency;
-          const amount = Number.parseFloat(price);
-          if (Number.isNaN(amount)) {
-            throw new Error(`Invalid quoted price: ${price}`);
-          }
-          if (amount > status.payment_config.singlePurchaseLimitUsdc) {
-            return textResult([
-              `Local payment policy denied the purchase before signing.`,
-              `Quoted price: ${price} ${currency}`,
-              `Single purchase limit: ${status.payment_config.singlePurchaseLimitUsdc} ${status.payment_config.currency}`,
-              `No payment request was sent to StablePay.`,
-            ].join("\n"), { status: "policy_denied", first_attempt: firstAttempt.body });
-          }
-          if (amount > status.payment_config.autoPurchaseThresholdUsdc) {
-            return textResult([
-              `Manual confirmation is required before paying this skill.`,
-              `Quoted price: ${price} ${currency}`,
-              `Auto purchase threshold: ${status.payment_config.autoPurchaseThresholdUsdc} ${status.payment_config.currency}`,
-              `This tool stopped before signing so the user can confirm explicitly.`,
-            ].join("\n"), { status: "manual_confirmation_required", first_attempt: firstAttempt.body });
-          }
-
-          const unixTimestamp = Math.floor(Date.now() / 1000);
-          const paymentNonce = `${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
-          const amountMinor = toMinorUnits(price);
-          const currencyCode = currency === "USDT" ? 2 : 1;
-          const paymentSignData = `${agentDid}|${requirement.skill_did}|${amountMinor}|${currencyCode}|${unixTimestamp}|${paymentNonce}`;
-          const paymentSignature = await runtime.signMessage({
-            message: paymentSignData,
-            chain: "solana",
+          const pc = status.payment_config;
+          const settled = await settlePaymentViaGateway({
+            client,
+            runtime,
+            cfg,
+            agentDid,
+            agentWalletAddress: status.wallet.wallet_address,
+            requirement,
+            paymentLimits: {
+              singlePurchaseLimitUsdc: pc.singlePurchaseLimitUsdc,
+              autoPurchaseThresholdUsdc: pc.autoPurchaseThresholdUsdc,
+              currency: pc.currency,
+            },
+            confirmOverThreshold: params.confirm_over_threshold === true,
           });
 
-          const payPayload = {
-            agent_did: agentDid,
-            skill_did: requirement.skill_did,
-            amount: price,
-            currency,
-            signature: paymentSignature.signature,
-            timestamp: unixTimestamp,
-            nonce: paymentNonce,
-          };
-          const gatewayTimestamp = new Date().toISOString();
-          const gatewayNonce = `${Date.now()}-${Math.random().toString(16).slice(2, 10)}-gw`;
-          const payBody = JSON.stringify(payPayload);
-          const canonical = `POST\n${requirement.payment_endpoint || "/api/v1/pay"}\n\n${createHash("sha256").update(payBody, "utf8").digest("hex")}`;
-          const gatewaySignature = await runtime.signMessage({
-            message: canonical,
-            chain: "solana",
-            timestamp: gatewayTimestamp,
-            nonce: gatewayNonce,
-            append_timestamp_nonce: true,
-          });
+          if (!settled.ok) {
+            return textResult(
+              [
+                settled.status === "policy_denied"
+                  ? `Local payment policy denied the purchase before signing.`
+                  : `Manual confirmation is required before paying this skill.`,
+                settled.detail,
+                `JSON:`,
+                formatJson({ requirement: settled.requirement, first_attempt: firstAttempt.body }),
+              ].join("\n"),
+              { status: settled.status, first_attempt: firstAttempt.body },
+            );
+          }
 
-          const payResponse = await client.initiatePayment(payPayload, {
-            "X-StablePay-DID": agentDid,
-            "X-StablePay-Signature": gatewaySignature.signature,
-            "X-StablePay-Timestamp": gatewayTimestamp,
-            "X-StablePay-Nonce": gatewayNonce,
-            "X-Idempotency-Key": `openclaw-${paymentNonce}`,
-          });
+          const { result } = settled;
+          const payResponse = result.pay_response as { tx_id?: string };
+          const price = result.price;
+          const currency = result.currency;
 
           const retryAttempts = params.retry_attempts ?? 6;
           const retryDelayMs = params.retry_delay_ms ?? 1500;
@@ -377,7 +356,7 @@ export default definePluginEntry({
             `Agent DID: ${agentDid}`,
             `Skill DID: ${requirement.skill_did}`,
             `Quoted price: ${price} ${currency}`,
-            `Pay tx_id: ${payResponse.tx_id || "(pending)"}`,
+            `Pay tx_id: ${payResponse?.tx_id ?? "(pending)"}`,
             `Execute URL: ${executeUrl}`,
             `Retry attempts: ${retryAttempts}`,
             `Final execute status: ${finalAttempt.status}`,
@@ -385,22 +364,121 @@ export default definePluginEntry({
             formatJson({
               first_attempt: firstAttempt.body,
               payment_requirement: requirement,
-              gateway_auth: {
-                did: agentDid,
-                timestamp: gatewayTimestamp,
-                nonce: gatewayNonce,
-                canonical,
-              },
-              payment_signature: {
-                sign_data: paymentSignData,
-                amount_minor: amountMinor,
-              },
-              pay_response: payResponse,
+              settlement: result,
+              pay_response: result.pay_response,
               final_attempt: finalAttempt.body,
             }),
           ].join("\n"));
         } catch (error) {
           return errorResult("Failed to execute the paid skill demo", error);
+        }
+      },
+    });
+
+    api.registerTool({
+      label: "Pay Skill Via Gateway",
+      name: "stablepay_pay_via_gateway",
+      description:
+        "GET /api/v1/pay/require on StablePay api-gateway (e.g. localhost:28080), then on HTTP 402 run the full ows-pay.md payment (partial SPL tx + signatures + POST /api/v1/pay). Use this from chat without any external shell script.",
+      parameters: Type.Object(
+        {
+          skill_did: Type.String({ description: "Seller skill DID, e.g. did:solana:..." }),
+          skill_name: Type.String({ description: "Skill name as registered for pay/require." }),
+          price: Type.String({ description: "Decimal price string, e.g. 1.00" }),
+          currency: Type.Optional(Type.Union([Type.Literal("USDC"), Type.Literal("USDT")])),
+          message: Type.Optional(Type.String({ description: "Optional pay/require message." })),
+          confirm_over_threshold: Type.Optional(
+            Type.Boolean({
+              description: "Set true after user confirms a purchase above the auto-purchase threshold.",
+            }),
+          ),
+        },
+        { additionalProperties: false },
+      ),
+      async execute(_id, params: PayViaGatewayParams) {
+        try {
+          const status = await runtime.getStatus();
+          if (!status.wallet) {
+            throw new Error("No local wallet found. Create a local wallet first.");
+          }
+          if (!status.wallet.backend_did) {
+            throw new Error("No backend DID mapping found. Run stablepay_register_local_did first.");
+          }
+          if (!status.payment_config) {
+            throw new Error("No local payment limits found. Run stablepay_configure_payment_limits first.");
+          }
+
+          const agentDid = status.wallet.backend_did;
+          const pc = status.payment_config;
+          const currency = params.currency ?? pc.currency;
+
+          const { status: httpStatus, payload } = await client.fetchPayRequire({
+            skill_did: params.skill_did,
+            agent_did: agentDid,
+            skill_name: params.skill_name,
+            price: params.price,
+            currency,
+            message: params.message,
+          });
+
+          if (httpStatus === 200) {
+            return textResult(
+              [
+                `GET /api/v1/pay/require returned HTTP 200 (no payment challenge).`,
+                `If you expected HTTP 402, check skill_name, price, currency, and that the skill is paid.`,
+                `JSON:`,
+                formatJson(payload),
+              ].join("\n"),
+              { http_status: 200, payload },
+            );
+          }
+
+          if (httpStatus !== 402) {
+            throw new Error(`Unexpected pay/require HTTP status ${httpStatus}`);
+          }
+
+          const requirement = extractPaymentRequirement(payload);
+          const settled = await settlePaymentViaGateway({
+            client,
+            runtime,
+            cfg,
+            agentDid,
+            agentWalletAddress: status.wallet.wallet_address,
+            requirement,
+            paymentLimits: {
+              singlePurchaseLimitUsdc: pc.singlePurchaseLimitUsdc,
+              autoPurchaseThresholdUsdc: pc.autoPurchaseThresholdUsdc,
+              currency: pc.currency,
+            },
+            confirmOverThreshold: params.confirm_over_threshold === true,
+          });
+
+          if (!settled.ok) {
+            return textResult(
+              [
+                settled.status === "policy_denied"
+                  ? `Local payment policy denied the purchase before signing.`
+                  : `Manual confirmation is required before paying this skill.`,
+                settled.detail,
+                `JSON:`,
+                formatJson({ requirement: settled.requirement, pay_require_response: payload }),
+              ].join("\n"),
+              { status: settled.status, pay_require_response: payload },
+            );
+          }
+
+          const payResponse = settled.result.pay_response as { tx_id?: string };
+          return textResult(
+            [
+              `StablePay gateway payment submitted.`,
+              `tx_id: ${payResponse?.tx_id ?? "(see JSON)"}`,
+              `JSON:`,
+              formatJson(settled.result),
+            ].join("\n"),
+            { status: "paid", settlement: settled.result },
+          );
+        } catch (error) {
+          return errorResult("Failed to pay via StablePay gateway", error);
         }
       },
     });
@@ -599,16 +677,6 @@ function extractPaymentRequirement(payload: any) {
     message?: string;
     payment_endpoint?: string;
   };
-}
-
-function toMinorUnits(amount: string): number {
-  const normalized = amount.trim();
-  if (!/^\d+(\.\d{1,6})?$/.test(normalized)) {
-    throw new Error(`Invalid token amount: ${amount}`);
-  }
-  const [whole, fraction = ""] = normalized.split(".");
-  const paddedFraction = `${fraction}000000`.slice(0, 6);
-  return Number.parseInt(whole, 10) * 1_000_000 + Number.parseInt(paddedFraction, 10);
 }
 
 function sleep(ms: number) {

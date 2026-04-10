@@ -2,7 +2,7 @@
   "id": "stablepayai",
   "name": "StablePay",
   "description": "StablePay wallet, DID registration (client-held keys), OWS/local signing, and payment flows.",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "configSchema": {
     "type": "object",
     "additionalProperties": false,
@@ -10,8 +10,23 @@
       "backendBaseUrl": {
         "type": "string",
         "format": "uri",
-        "default": "http://127.0.0.1:8080",
-        "description": "StablePay API Gateway base URL, for example http://127.0.0.1:28080"
+        "default": "http://127.0.0.1:28080",
+        "description": "StablePay API Gateway base URL (docker-compose api-gateway maps 28080:8080)"
+      },
+      "feePayerSolanaAddress": {
+        "type": "string",
+        "description": "Hotwallet / fee payer pubkey (must match blockchain-adapter hotwallet.json). Alternatively set env STABLEPAY_FEE_PAYER_SOL."
+      },
+      "solanaRpcUrl": {
+        "type": "string",
+        "format": "uri",
+        "default": "https://api.devnet.solana.com",
+        "description": "Solana RPC used to build SPL transfer + blockhash"
+      },
+      "splTokenMintAddress": {
+        "type": "string",
+        "default": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+        "description": "SPL mint for payment token (default devnet USDC per ows-pay.md)"
       },
       "verifyPageBaseUrl": {
         "type": "string",
@@ -94,8 +109,20 @@
   "uiHints": {
     "backendBaseUrl": {
       "label": "StablePay gateway URL",
-      "help": "Base URL for api-gateway, for example http://127.0.0.1:28080",
+      "help": "Base URL for api-gateway (default http://127.0.0.1:28080)",
       "placeholder": "http://127.0.0.1:28080"
+    },
+    "feePayerSolanaAddress": {
+      "label": "Fee payer (hotwallet) address",
+      "help": "Required for on-chain pay flow; same as blockchain-adapter hotwallet public key"
+    },
+    "solanaRpcUrl": {
+      "label": "Solana RPC URL",
+      "help": "Devnet/mainnet RPC for transaction construction"
+    },
+    "splTokenMintAddress": {
+      "label": "SPL mint",
+      "help": "USDC/USDT mint address for the transfer instruction"
     },
     "verifyPageBaseUrl": {
       "label": "Verify page URL",
