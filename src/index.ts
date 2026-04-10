@@ -23,8 +23,8 @@ import type {
 import { buildVerifyLink, extractHandleFromTweetUrl, formatJson } from "./utils.js";
 
 export default definePluginEntry({
-  id: "stablepay-openclaw-plugin",
-  name: "StablePay",
+  id: "stablepay-agentpay-dev",
+  name: "stablepay-agentpay-dev",
   description:
     "StablePay wallet runtime, client-side DID registration, OWS/local signing, and payment flows for OpenClaw.",
   register(api) {
