@@ -1,10 +1,13 @@
 {
   "plugins": {
     "entries": {
-      "stablepay": {
+      "stablepay-openclaw-plugin": {
         "enabled": true,
         "config": {
           "backendBaseUrl": "http://127.0.0.1:28080",
+          "feePayerSolanaAddress": "REPLACE_WITH_PLATFORM_HOTWALLET_SOLANA_PUBKEY",
+          "solanaRpcUrl": "https://api.devnet.solana.com",
+          "splTokenMintAddress": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
           "verifyPageBaseUrl": "http://127.0.0.1:3000/verify",
           "didRegisterPath": "/api/v1/did",
           "requestTimeoutMs": 8000,
@@ -12,7 +15,7 @@
         }
       }
     },
-    "allow": ["stablepay"]
+    "allow": ["stablepay-openclaw-plugin"]
   },
   "tools": {
     "allow": [
@@ -22,7 +25,9 @@
       "stablepay_configure_payment_limits",
       "stablepay_build_payment_policy",
       "stablepay_sign_message",
-      "stablepay_execute_paid_skill_demo"
+      "stablepay_pay_via_gateway",
+      "stablepay_execute_paid_skill_demo",
+      "stablepay_query_sales"
     ]
   }
 }

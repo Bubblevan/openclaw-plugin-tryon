@@ -4,6 +4,8 @@ import { createHash } from 'node:crypto';
 import os from 'node:os';
 import path from 'node:path';
 
+console.warn('[legacy demo] demo-pay.mjs 保留用于历史调试。推荐在 openclaw tui 里使用 stablepay_pay_via_gateway / stablepay_execute_paid_skill_demo。');
+
 const DEFAULT_STATE_FILE = path.join(os.homedir(), '.stablepay-openclaw', 'stablepay-local-state.enc');
 
 const cfg = {

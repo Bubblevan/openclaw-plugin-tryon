@@ -108,6 +108,10 @@ export type BalanceParams = {
   did: string;
 };
 
+export type SalesParams = {
+  skill_did: string;
+};
+
 export type VerifyLinkParams = {
   did: string;
 };

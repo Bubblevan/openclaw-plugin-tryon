@@ -26,7 +26,17 @@ export class StablePayClient {
         return this.get(`/verify?did=${encodeURIComponent(did)}`);
     }
     async getBalance(did) {
-        return this.get(`/api/v1/balance?agent=${encodeURIComponent(did)}`);
+        try {
+            // Newer gateway contract.
+            return await this.get(`/api/v1/balance?agent_did=${encodeURIComponent(did)}`);
+        }
+        catch (error) {
+            if (!(error instanceof StablePayHttpError) || error.status !== 400) {
+                throw error;
+            }
+            // Backward-compat fallback for older deployments.
+            return this.get(`/api/v1/balance?agent=${encodeURIComponent(did)}`);
+        }
     }
     async executeDemoSkill(executeUrl, agentDid) {
         const target = new URL(executeUrl);

@@ -53,7 +53,16 @@ export class StablePayClient {
   }
 
   async getBalance(did: string): Promise<BalanceResponse> {
-    return this.get<BalanceResponse>(`/api/v1/balance?agent=${encodeURIComponent(did)}`);
+    try {
+      // Newer gateway contract.
+      return await this.get<BalanceResponse>(`/api/v1/balance?agent_did=${encodeURIComponent(did)}`);
+    } catch (error) {
+      if (!(error instanceof StablePayHttpError) || error.status !== 400) {
+        throw error;
+      }
+      // Backward-compat fallback for older deployments.
+      return this.get<BalanceResponse>(`/api/v1/balance?agent=${encodeURIComponent(did)}`);
+    }
   }
 
   async executeDemoSkill(executeUrl: string, agentDid: string): Promise<{ status: number; body: any }> {

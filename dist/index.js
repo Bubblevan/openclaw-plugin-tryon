@@ -6,7 +6,7 @@ import { settlePaymentViaGateway } from "./pay_settlement.js";
 import { StablePayRuntime } from "./runtime.js";
 import { buildVerifyLink, extractHandleFromTweetUrl, formatJson } from "./utils.js";
 export default definePluginEntry({
-    id: "stablepay",
+    id: "stablepay-openclaw-plugin",
     name: "StablePay",
     description: "StablePay wallet runtime, client-side DID registration, OWS/local signing, and payment flows for OpenClaw.",
     register(api) {
@@ -485,6 +485,28 @@ export default definePluginEntry({
                 }
                 catch (error) {
                     return errorResult("Failed to query balance", error);
+                }
+            },
+        }, { optional: true });
+        api.registerTool({
+            label: "Query Skill Sales",
+            name: "stablepay_query_sales",
+            description: "Query sales records for a skill_did through StablePay gateway /api/v1/sales.",
+            parameters: Type.Object({
+                skill_did: Type.String({ description: "Seller skill DID (did:solana:...)" }),
+            }, { additionalProperties: false }),
+            async execute(_id, params) {
+                try {
+                    const sales = await client.getSales(params.skill_did);
+                    return textResult([
+                        `Sales query succeeded.`,
+                        `Skill DID: ${params.skill_did}`,
+                        `JSON:`,
+                        formatJson(sales),
+                    ].join("\n"));
+                }
+                catch (error) {
+                    return errorResult("Failed to query skill sales", error);
                 }
             },
         }, { optional: true });
