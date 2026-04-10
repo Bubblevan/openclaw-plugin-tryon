@@ -6,7 +6,7 @@ import { settlePaymentViaGateway } from "./pay_settlement.js";
 import { StablePayRuntime } from "./runtime.js";
 import { buildVerifyLink, extractHandleFromTweetUrl, formatJson } from "./utils.js";
 export default definePluginEntry({
-    id: "stablepayai",
+    id: "stablepay-openclaw-plugin",
     name: "StablePay",
     description: "StablePay wallet runtime, client-side DID registration, OWS/local signing, and payment flows for OpenClaw.",
     register(api) {

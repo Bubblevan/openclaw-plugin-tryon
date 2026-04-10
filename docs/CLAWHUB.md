@@ -2,8 +2,8 @@
 
 本仓库当前口径：
 
-- package slug（安装名）：`stablepay-openclaw-plugin`（见 `package.json.name`）
-- runtime id（manifest）：`stablepayai`（见 `openclaw.plugin.json.id`）
+- package slug（安装名）：`stablepay-plugin`（见 `package.json.name`）
+- runtime id（manifest）：`stablepay-openclaw-plugin`（见 `openclaw.plugin.json.id`）
 
 > 注意：已发布 package line 下，runtime id 需保持稳定。
 
@@ -15,21 +15,21 @@
 ## Dry run
 
 ```bash
-clawhub package publish /path/to/stablepay-openclaw-plugin --dry-run
+clawhub package publish /path/to/stablepay-plugin --dry-run
 ```
 
 若已推送到 GitHub：
 
 ```bash
-clawhub package publish https://github.com/YOUR_ORG/stablepay-openclaw-plugin --dry-run
+clawhub package publish https://github.com/YOUR_ORG/openclaw-plugin-tryon --dry-run
 ```
 
 ## 正式发布
 
 ```bash
-clawhub package publish https://github.com/YOUR_ORG/stablepay-openclaw-plugin
+clawhub package publish https://github.com/YOUR_ORG/openclaw-plugin-tryon
 # 或指定版本/tag
-clawhub package publish YOUR_ORG/stablepay-openclaw-plugin@v0.3.0
+clawhub package publish YOUR_ORG/openclaw-plugin-tryon@v0.3.2
 ```
 
 将 `YOUR_ORG` 换成你的组织或用户名。
@@ -37,7 +37,7 @@ clawhub package publish YOUR_ORG/stablepay-openclaw-plugin@v0.3.0
 ## WSL / 团队成员安装
 
 ```bash
-openclaw plugins install clawhub:stablepay-openclaw-plugin
+openclaw plugins install clawhub:stablepay-plugin
 openclaw gateway restart
 ```
 
