@@ -29,6 +29,7 @@ export class StablePayClient {
       public_key: string;
       wallet_address: string;
       wallet_id?: string;
+      wallet_name?: string;
       metadata?: Record<string, string>;
     },
     pathOverride?: string,

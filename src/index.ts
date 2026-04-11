@@ -114,7 +114,7 @@ export default definePluginEntry({
       parameters: Type.Object(
         {
           user_type: Type.Optional(Type.Union([Type.Literal("agent"), Type.Literal("developer")])),
-          register_path: Type.Optional(Type.String({ description: "Optional DID register API path override; default /api/v1/did (contract). Use /api/v1/did/register for the alias." })),
+          register_path: Type.Optional(Type.String({ description: "Optional override; default /api/v1/did/register (bind client-held wallet)." })),
         },
         { additionalProperties: false },
       ),
@@ -132,6 +132,7 @@ export default definePluginEntry({
               public_key: status.wallet.wallet_address,
               wallet_address: status.wallet.wallet_address,
               wallet_id: status.wallet.wallet_id,
+              wallet_name: status.wallet.wallet_name,
               metadata: {
                 sign_runtime: status.active_driver,
                 source: "@stablepay/openclaw-plugin",

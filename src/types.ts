@@ -125,6 +125,7 @@ export type DIDRecord = {
   wallet_address: string;
   public_key?: string;
   wallet_id?: string;
+  wallet_name?: string;
   created_at?: string;
 };
 

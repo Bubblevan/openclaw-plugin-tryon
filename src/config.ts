@@ -9,7 +9,8 @@ const DEFAULT_STATE_FILE = path.join(os.homedir(), ".stablepay-openclaw", "stabl
 const DEFAULT_MASTER_KEY_ENV = "STABLEPAY_PLUGIN_MASTER_KEY";
 const DEFAULT_OWS_PASSPHRASE_ENV = "STABLEPAY_OWS_PASSPHRASE";
 const DEFAULT_WALLET_NAME_PREFIX = "stablepay";
-const DEFAULT_DID_REGISTER_PATH = "/api/v1/did";
+/** 绑定 OWS/本地已有钱包须走 Register，勿用服务端托管 Create */
+const DEFAULT_DID_REGISTER_PATH = "/api/v1/did/register";
 const DEFAULT_OWS_REST_SIGN_PATH = "/v1/sign/message";
 const DEFAULT_OWS_REST_API_KEY_ENV = "STABLEPAY_OWS_REST_API_KEY";
 const DEFAULT_OWS_REST_CHAIN_ID = "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp";
