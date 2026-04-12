@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { signSolanaMessageHexWithOwsCli } from "./ows_sign_tx.js";
+import { stablePayDebug } from "./plugin_log.js";
 const BASE58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 export class StablePayRuntime {
     cfg;
@@ -191,6 +192,14 @@ export class StablePayRuntime {
         if (!/^[0-9a-fA-F]+$/.test(clean) || clean.length % 2 !== 0) {
             throw new Error("signSolanaTransactionMessageHex: message must be an even-length hex string");
         }
+        stablePayDebug("ows: signSolanaTransactionMessageHex", {
+            runtimeDriver: state.runtimeDriver,
+            walletName: state.walletName,
+            walletId: state.walletId,
+            walletAddress: state.walletAddress,
+            publicKey: state.publicKey,
+            messageHexChars: clean.length,
+        });
         if (state.runtimeDriver === "ows-sdk") {
             const ows = await this.tryLoadOwsSdk();
             if (!ows)

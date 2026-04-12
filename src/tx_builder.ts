@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import { Connection, PublicKey, Transaction } from "@solana/web3.js";
+import { stablePayDebug } from "./plugin_log.js";
 import {
   TOKEN_PROGRAM_ID,
   createAssociatedTokenAccountInstruction,
@@ -75,6 +76,15 @@ export async function buildPartiallySignedSplTransferTx(
   }
   tx.add(createTransferInstruction(fromATA, toATA, fromPk, input.amountMinor, [], TOKEN_PROGRAM_ID));
 
+  stablePayDebug("spl_tx: transfer instruction", {
+    spl_source_ata: fromATA.toBase58(),
+    spl_dest_ata: toATA.toBase58(),
+    authority_pubkey: fromPk.toBase58(),
+    fee_payer_pubkey: feePayerPk.toBase58(),
+    fee_payer_same_as_transfer_authority: fromPk.equals(feePayerPk),
+    amount_minor: String(input.amountMinor),
+  });
+
   const { blockhash } = await conn.getLatestBlockhash("confirmed");
   tx.recentBlockhash = blockhash;
   tx.feePayer = feePayerPk;
@@ -83,11 +93,17 @@ export async function buildPartiallySignedSplTransferTx(
   const unsigned_tx_base64 = Buffer.from(unsignedRaw).toString("base64");
 
   const messageHex = Buffer.from(tx.serializeMessage()).toString("hex");
+  stablePayDebug("spl_tx: signing serialized message", {
+    message_hex_chars: messageHex.length,
+    unsigned_tx_base64_chars: unsigned_tx_base64.length,
+  });
+
   const buyerSigHex = await input.signSolanaTxMessageHex(messageHex);
   const buyerSigBuf = Buffer.from(buyerSigHex.replace(/^0x/i, ""), "hex");
   if (buyerSigBuf.length !== 64) {
     throw new Error(`invalid buyer signature length: expected 64 bytes, got ${buyerSigBuf.length}`);
   }
+  stablePayDebug("spl_tx: buyer signature bytes", { len: buyerSigBuf.length });
   tx.addSignature(fromPk, buyerSigBuf);
 
   const partiallySignedRaw = tx.serialize({ requireAllSignatures: false, verifySignatures: false });

@@ -31,6 +31,8 @@ export type PluginConfig = {
   owsRestWalletId?: string;
   /** CAIP-2 chain id for Solana (default devnet cluster from OWS examples) */
   owsRestChainId?: string;
+  /** Extra verbose logs (ATA, fee payer vs from, signing runtime). Env: STABLEPAY_PLUGIN_DEBUG=1 */
+  pluginDebug?: boolean;
 };
 
 export type RequestHeaders = Record<string, string>;

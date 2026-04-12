@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import type { StablePayClient } from "./client.js";
+import { stablePayDebug, stablePayInfo, stablePayWarn } from "./plugin_log.js";
 import type { StablePayRuntime } from "./runtime.js";
 import type { PluginConfig } from "./types.js";
 import { buildPartiallySignedSplTransferTx } from "./tx_builder.js";
@@ -132,12 +133,39 @@ export async function settlePaymentViaGateway(input: {
     };
   }
 
+  stablePayInfo("pay_settle: start", {
+    agentDid: input.agentDid,
+    agentWalletAddress: input.agentWalletAddress,
+    skill_did: requirement.skill_did,
+    price,
+    currency,
+  });
+
   const feePayer = resolveFeePayer(input.cfg);
   const mint = input.cfg.splTokenMintAddress.trim();
   const rpc = input.cfg.solanaRpcUrl.trim();
   const sellerSol = solanaPubkeyFromSkillDid(requirement.skill_did);
   const amountMinor = BigInt(toMinorUnitsInt(price));
   const ccy = currencyEnum(currency);
+
+  stablePayInfo("pay_settle: fee payer resolved (pays SOL only; env STABLEPAY_FEE_PAYER_SOL or config)", {
+    feePayer,
+  });
+  const agentTrim = input.agentWalletAddress.trim();
+  if (feePayer === agentTrim) {
+    stablePayWarn(
+      "pay_settle: fee payer pubkey equals agentWalletAddress — SPL source authority and fee payer are the same; USDC will leave this account if it holds the token",
+    );
+  }
+
+  stablePayDebug("pay_settle: build params", {
+    rpc,
+    mint,
+    fromWalletAddress: agentTrim,
+    toWalletAddress: sellerSol,
+    feePayerAddress: feePayer,
+    amountMinor: String(amountMinor),
+  });
 
   const { signed_tx_base64, signed_tx_hash_sha256 } = await buildPartiallySignedSplTransferTx({
     rpcUrl: rpc,
@@ -147,6 +175,11 @@ export async function settlePaymentViaGateway(input: {
     feePayerAddress: feePayer,
     amountMinor,
     signSolanaTxMessageHex: (hex) => input.runtime.signSolanaTransactionMessageHex(hex),
+  });
+
+  stablePayInfo("pay_settle: partial SPL tx built", {
+    signed_tx_hash_sha256_prefix: `${signed_tx_hash_sha256.slice(0, 16)}…`,
+    signed_tx_base64_chars: signed_tx_base64.length,
   });
 
   const bizTs = Math.floor(Date.now() / 1000);
@@ -186,6 +219,8 @@ export async function settlePaymentViaGateway(input: {
   });
 
   const idemKey = `openclaw-${bizNonce}`;
+  stablePayInfo("pay_settle: posting /api/v1/pay", { order_id: orderId, path: payPath });
+
   const payResponse = await input.client.postJsonRaw(payPath, compactBody, {
     "X-StablePay-DID": input.agentDid,
     "X-StablePay-Signature": gatewaySignature.signature,

@@ -48,6 +48,12 @@ export function getPluginConfig(api: any): Required<PluginConfig> {
     owsRestAuthMode: raw.owsRestAuthMode ?? "bearer",
     owsRestWalletId: raw.owsRestWalletId ?? "",
     owsRestChainId: raw.owsRestChainId ?? DEFAULT_OWS_REST_CHAIN_ID,
+    pluginDebug:
+      raw.pluginDebug === true ||
+      (() => {
+        const v = process.env.STABLEPAY_PLUGIN_DEBUG?.trim().toLowerCase();
+        return v === "1" || v === "true" || v === "yes";
+      })(),
   };
 }
 

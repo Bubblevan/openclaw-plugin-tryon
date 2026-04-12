@@ -20,6 +20,7 @@ import type {
   VerifyStatusParams,
   VerifyTwitterParams,
 } from "./types.js";
+import { initStablePayPluginLogging, stablePayInfo } from "./plugin_log.js";
 import { buildVerifyLink, extractHandleFromTweetUrl, formatJson } from "./utils.js";
 
 export default definePluginEntry({
@@ -29,10 +30,16 @@ export default definePluginEntry({
     "StablePay wallet runtime, client-side DID registration, OWS/local signing, and payment flows for OpenClaw.",
   register(api) {
     const cfg = getPluginConfig(api);
+    initStablePayPluginLogging(api.logger, cfg);
     const client = new StablePayClient(cfg);
     const runtime = new StablePayRuntime(cfg);
 
     api.logger.info(`StablePay plugin loaded with backend ${cfg.backendBaseUrl}`);
+    stablePayInfo("plugin: init", {
+      backendBaseUrl: cfg.backendBaseUrl,
+      pluginDebug: cfg.pluginDebug,
+      STABLEPAY_PLUGIN_DEBUG: process.env.STABLEPAY_PLUGIN_DEBUG ?? "(unset)",
+    });
 
     api.registerTool({
       label: "StablePay Runtime Status",
@@ -306,6 +313,13 @@ export default definePluginEntry({
 
           const requirement = extractPaymentRequirement(firstAttempt.body);
           const pc = status.payment_config;
+          stablePayInfo("tool: execute_paid_skill_demo before settle", {
+            agentDid,
+            agentWalletAddress: status.wallet.wallet_address,
+            wallet_id: status.wallet.wallet_id,
+            wallet_name: status.wallet.wallet_name,
+            active_driver: status.active_driver,
+          });
           const settled = await settlePaymentViaGateway({
             client,
             runtime,
@@ -440,6 +454,13 @@ export default definePluginEntry({
           }
 
           const requirement = extractPaymentRequirement(payload);
+          stablePayInfo("tool: pay_via_gateway before settle", {
+            agentDid,
+            agentWalletAddress: status.wallet.wallet_address,
+            wallet_id: status.wallet.wallet_id,
+            wallet_name: status.wallet.wallet_name,
+            active_driver: status.active_driver,
+          });
           const settled = await settlePaymentViaGateway({
             client,
             runtime,

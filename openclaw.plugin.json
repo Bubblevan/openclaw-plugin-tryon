@@ -2,7 +2,7 @@
   "id": "stablepay-agentpay-dev",
   "name": "stablepay-agentpay-dev",
   "description": "StablePay wallet, DID registration (client-held keys), OWS/local signing, and payment flows.",
-  "version": "0.3.6",
+  "version": "0.3.7",
   "configSchema": {
     "type": "object",
     "additionalProperties": false,
@@ -99,6 +99,11 @@
       "didRegisterPath": {
         "type": "string",
         "description": "API path used to register a client-side wallet into DID Service"
+      },
+      "pluginDebug": {
+        "type": "boolean",
+        "default": false,
+        "description": "Verbose logs: SPL ATAs, fee payer vs transfer authority, OWS wallet fields. Or set env STABLEPAY_PLUGIN_DEBUG=1"
       }
     }
   },
