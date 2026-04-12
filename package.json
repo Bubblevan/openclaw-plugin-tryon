@@ -1,6 +1,6 @@
 {
   "name": "stablepay-agentpay-dev",
-  "version": "0.3.4",
+  "version": "0.3.6",
   "type": "module",
   "description": "StablePay wallet, client-side DID registration, OWS/local signing, and payment tools for OpenClaw.",
   "license": "MIT",

@@ -469,7 +469,7 @@ export default definePluginEntry({
         api.registerTool({
             label: "Query Balance",
             name: "stablepay_query_balance",
-            description: "Query the StablePay backend balance for a DID.",
+            description: "Query agent balance from StablePay api-gateway GET /api/v1/balance (agent_did query; falls back to legacy agent= on 400). Not on-chain RPC.",
             parameters: Type.Object({
                 did: Type.String({ description: "StablePay DID" }),
             }, { additionalProperties: false }),
@@ -488,11 +488,11 @@ export default definePluginEntry({
                     return errorResult("Failed to query balance", error);
                 }
             },
-        }, { optional: true });
+        });
         api.registerTool({
             label: "Query Skill Sales",
             name: "stablepay_query_sales",
-            description: "Query sales records for a skill_did through StablePay gateway /api/v1/sales.",
+            description: "Query seller sales for a skill_did via StablePay api-gateway GET /api/v1/sales (DID-authenticated when gateway requires it).",
             parameters: Type.Object({
                 skill_did: Type.String({ description: "Seller skill DID (did:solana:...)" }),
             }, { additionalProperties: false }),
@@ -510,7 +510,7 @@ export default definePluginEntry({
                     return errorResult("Failed to query skill sales", error);
                 }
             },
-        }, { optional: true });
+        });
         api.registerTool({
             label: "Get Verify Status",
             name: "stablepay_get_verify_status",

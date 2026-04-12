@@ -579,63 +579,58 @@ export default definePluginEntry({
       { optional: true },
     );
 
-    api.registerTool(
-      {
-        label: "Query Balance",
-        name: "stablepay_query_balance",
-        description: "Query the StablePay backend balance for a DID.",
-        parameters: Type.Object(
-          {
-            did: Type.String({ description: "StablePay DID" }),
-          },
-          { additionalProperties: false },
-        ),
-        async execute(_id, params: BalanceParams) {
-          try {
-            const balance = await client.getBalance(params.did);
-            return textResult([
-              `Balance query succeeded.`,
-              `DID: ${params.did}`,
-              `Balance: ${balance.balance} ${balance.currency}`,
-              `JSON:`,
-              formatJson(balance),
-            ].join("\n"));
-          } catch (error) {
-            return errorResult("Failed to query balance", error);
-          }
+    api.registerTool({
+      label: "Query Balance",
+      name: "stablepay_query_balance",
+      description:
+        "Query agent balance from StablePay api-gateway GET /api/v1/balance (agent_did query; falls back to legacy agent= on 400). Not on-chain RPC.",
+      parameters: Type.Object(
+        {
+          did: Type.String({ description: "StablePay DID" }),
         },
+        { additionalProperties: false },
+      ),
+      async execute(_id, params: BalanceParams) {
+        try {
+          const balance = await client.getBalance(params.did);
+          return textResult([
+            `Balance query succeeded.`,
+            `DID: ${params.did}`,
+            `Balance: ${balance.balance} ${balance.currency}`,
+            `JSON:`,
+            formatJson(balance),
+          ].join("\n"));
+        } catch (error) {
+          return errorResult("Failed to query balance", error);
+        }
       },
-      { optional: true },
-    );
+    });
 
-    api.registerTool(
-      {
-        label: "Query Skill Sales",
-        name: "stablepay_query_sales",
-        description:
-          "Query sales records for a skill_did through StablePay gateway /api/v1/sales.",
-        parameters: Type.Object(
-          {
-            skill_did: Type.String({ description: "Seller skill DID (did:solana:...)" }),
-          },
-          { additionalProperties: false },
-        ),
-        async execute(_id, params: SalesParams) {
-          try {
-            const sales = await client.getSales(params.skill_did);
-            return textResult([
-              `Sales query succeeded.`,
-              `Skill DID: ${params.skill_did}`,
-              `JSON:`,
-              formatJson(sales),
-            ].join("\n"));
-          } catch (error) {
-            return errorResult("Failed to query skill sales", error);
-          }
+    api.registerTool({
+      label: "Query Skill Sales",
+      name: "stablepay_query_sales",
+      description:
+        "Query seller sales for a skill_did via StablePay api-gateway GET /api/v1/sales (DID-authenticated when gateway requires it).",
+      parameters: Type.Object(
+        {
+          skill_did: Type.String({ description: "Seller skill DID (did:solana:...)" }),
         },
+        { additionalProperties: false },
+      ),
+      async execute(_id, params: SalesParams) {
+        try {
+          const sales = await client.getSales(params.skill_did);
+          return textResult([
+            `Sales query succeeded.`,
+            `Skill DID: ${params.skill_did}`,
+            `JSON:`,
+            formatJson(sales),
+          ].join("\n"));
+        } catch (error) {
+          return errorResult("Failed to query skill sales", error);
+        }
       },
-      { optional: true },
-    );
+    });
 
     api.registerTool(
       {

@@ -189,14 +189,26 @@ openclaw tui
 - 后端在未购买时返回 `402`
 - 插件完成支付后再重试后端请求
 
-## 工具清单（当前）
+## 工具清单
 
-- 钱包/状态：`stablepay_runtime_status` `stablepay_create_local_wallet`
-- DID：`stablepay_register_local_did`
-- 支付策略：`stablepay_configure_payment_limits` `stablepay_build_payment_policy`
-- 支付：`stablepay_pay_via_gateway` `stablepay_execute_paid_skill_demo`
-- 签名：`stablepay_sign_message`
-- 查询：`stablepay_query_balance` `stablepay_query_sales`
+`registerTool` 的 **optional** 仅保留给 X / Mock 验证相关工具；其余工具默认始终向 OpenClaw 暴露（无需再在 `tools.allow` 里单独放行查询类工具）。
+
+| 工具名 | Optional | 用途说明 |
+|--------|----------|----------|
+| `stablepay_runtime_status` | 否 | 查看插件 runtime、本地状态路径、当前钱包、OWS/本地驱动可用性；不含链上或网关余额。 |
+| `stablepay_create_local_wallet` | 否 | 按配置创建/绑定买家侧钱包（OWS SDK/CLI/REST 或 local-dev），写入加密本地状态。 |
+| `stablepay_register_local_did` | 否 | 将当前本地钱包公钥登记到网关（默认 `POST /api/v1/did`），拿到 `backend_did` 供后续支付与鉴权。 |
+| `stablepay_configure_payment_limits` | 否 | 写入本地加密状态：单次购买上限、自动购买阈值等，支付前策略校验用。 |
+| `stablepay_build_payment_policy` | 否 | 根据当前限额与钱包状态生成本地 OWS 向的支付策略 manifest（后续 OWS 策略注册接入点）。 |
+| `stablepay_sign_message` | 否 | 用当前钱包对消息签名；`append_timestamp_nonce=true` 时对齐网关 canonical + 时间戳 + nonce 的签法。 |
+| `stablepay_execute_paid_skill_demo` | 否 | 调 demo skill 的 `execute` URL；遇 HTTP 402 时走 `settlePaymentViaGateway`（预签 raw tx 等）完成 `POST /api/v1/pay`，再轮询重试 execute。 |
+| `stablepay_pay_via_gateway` | 否 | 直接 `GET /api/v1/pay/require`；402 时同样经 `settlePaymentViaGateway` 完成网关支付，无需外部 shell。 |
+| `stablepay_query_balance` | 否 | 经网关 `GET /api/v1/balance`（`agent_did`，失败时回退 `agent=`）查 StablePay 后端口径余额，**不是** Solana RPC 原生查询。 |
+| `stablepay_query_sales` | 否 | 经网关 `GET /api/v1/sales` 按 `skill_did` 查卖家侧销售数据。 |
+| `stablepay_generate_verify_link` | 是 | 生成验证页链接占位（X 验证可能未启用）。 |
+| `stablepay_seed_mock_tweet` | 是 | 向 mock 后端写入假推文，供本地 X 验证演示。 |
+| `stablepay_verify_x_mock` | 是 | 调 mock X 验证 API（DID + 推文 URL）。 |
+| `stablepay_get_verify_status` | 是 | 查询某 DID 是否已完成 X 验证（主注册链路可跳过 X）。 |
 
 ## 常见问题 / 排障
 
