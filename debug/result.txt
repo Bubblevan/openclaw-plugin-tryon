@@ -1,0 +1,408 @@
+(base) bubblevan@Bubbles:/mnt/d/MyLab/StablePay/stablepay-openclaw-plugin$ node seed-existing-sdk-wallet.mjs \
+  --wallet-name=stablepay-bubblevan2-fixed \
+  --public-key=C2vKSxoDErVhhLrKZvXHMmJcNKqKapx9MNQZrDab33vS \
+  --user-type=agent \
+  --single-limit=10 \
+  --auto-limit=5 \
+  --currency=USDC
+=== seeded local state ===
+{
+  "localStatePath": "/home/bubblevan/.stablepay-openclaw/stablepay-local-state.enc",
+  "walletName": "stablepay-bubblevan2-fixed",
+  "publicKey": "C2vKSxoDErVhhLrKZvXHMmJcNKqKapx9MNQZrDab33vS",
+  "runtimeDriver": "ows-sdk"
+}
+
+=== step 2: register local did ===
+{
+  "base": {
+    "code": 0,
+    "message": "success"
+  },
+  "created_at": "2026-04-13T09:04:43Z",
+  "did": "did:solana:C2vKSxoDErVhhLrKZvXHMmJcNKqKapx9MNQZrDab33vS",
+  "public_key": "C2vKSxoDErVhhLrKZvXHMmJcNKqKapx9MNQZrDab33vS",
+  "wallet_address": "C2vKSxoDErVhhLrKZvXHMmJcNKqKapx9MNQZrDab33vS",
+  "wallet_id": "stablepay-bubblevan2-fixed",
+  "wallet_name": "stablepay-bubblevan2-fixed"
+}
+
+=== step 3: configure payment limits ===
+{
+  "ok": true,
+  "payment_config": {
+    "singlePurchaseLimitUsdc": 10,
+    "autoPurchaseThresholdUsdc": 5,
+    "currency": "USDC",
+    "updatedAt": "2026-04-13T09:04:43.059Z"
+  },
+  "local_state_path": "/home/bubblevan/.stablepay-openclaw/stablepay-local-state.enc"
+}
+
+=== final status ===
+{
+  "requested_driver": "ows-sdk",
+  "active_driver": "ows-sdk",
+  "available_drivers": [
+    "ows-sdk",
+    "ows-cli",
+    "wsl-ows"
+  ],
+  "local_state_path": "/home/bubblevan/.stablepay-openclaw/stablepay-local-state.enc",
+  "has_wallet": true,
+  "wallet": {
+    "wallet_id": "stablepay-bubblevan2-fixed",
+    "wallet_name": "stablepay-bubblevan2-fixed",
+    "did": "did:solana:C2vKSxoDErVhhLrKZvXHMmJcNKqKapx9MNQZrDab33vS",
+    "wallet_address": "C2vKSxoDErVhhLrKZvXHMmJcNKqKapx9MNQZrDab33vS",
+    "runtime_driver": "ows-sdk",
+    "backend_did": "did:solana:C2vKSxoDErVhhLrKZvXHMmJcNKqKapx9MNQZrDab33vS"
+  },
+  "payment_config": {
+    "singlePurchaseLimitUsdc": 10,
+    "autoPurchaseThresholdUsdc": 5,
+    "currency": "USDC",
+    "updatedAt": "2026-04-13T09:04:43.059Z"
+  },
+  "policy": null,
+  "notes": []
+}
+
+=== consistency check ===
+{
+  "expectedDid": "did:solana:C2vKSxoDErVhhLrKZvXHMmJcNKqKapx9MNQZrDab33vS",
+  "finalWallet": "C2vKSxoDErVhhLrKZvXHMmJcNKqKapx9MNQZrDab33vS",
+  "finalDid": "did:solana:C2vKSxoDErVhhLrKZvXHMmJcNKqKapx9MNQZrDab33vS",
+  "walletMatchesInput": true,
+  "didMatchesInput": true
+}
+(base) bubblevan@Bubbles:/mnt/d/MyLab/StablePay/stablepay-openclaw-plugin$ node show-status.mjs
+{
+  "requested_driver": "auto",
+  "active_driver": "ows-sdk",
+  "available_drivers": [
+    "ows-sdk",
+    "ows-cli",
+    "wsl-ows"
+  ],
+  "local_state_path": "/home/bubblevan/.stablepay-openclaw/stablepay-local-state.enc",
+  "has_wallet": true,
+  "wallet": {
+    "wallet_id": "stablepay-bubblevan2-fixed",
+    "wallet_name": "stablepay-bubblevan2-fixed",
+    "did": "did:solana:C2vKSxoDErVhhLrKZvXHMmJcNKqKapx9MNQZrDab33vS",
+    "wallet_address": "C2vKSxoDErVhhLrKZvXHMmJcNKqKapx9MNQZrDab33vS",
+    "runtime_driver": "ows-sdk",
+    "backend_did": "did:solana:C2vKSxoDErVhhLrKZvXHMmJcNKqKapx9MNQZrDab33vS"
+  },
+  "payment_config": {
+    "singlePurchaseLimitUsdc": 10,
+    "autoPurchaseThresholdUsdc": 5,
+    "currency": "USDC",
+    "updatedAt": "2026-04-13T09:04:43.059Z"
+  },
+  "policy": null,
+  "notes": []
+}
+(base) bubblevan@Bubbles:/mnt/d/MyLab/StablePay/stablepay-openclaw-plugin$ node pay-via-gateway.mjs \
+  --skill-did=did:solana:2kZGwkLnVdSxjjNueeUQmqBf3tRKMn7y1bbktRZkJWdR \
+  --skill-name=ManualDemoSkill2 \
+  --price=1.00 \
+  --currency=USDC \
+  --message='Pay to unlock'
+bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
+=== load status ===
+{
+  "requested_driver": "auto",
+  "active_driver": "ows-sdk",
+  "available_drivers": [
+    "ows-sdk",
+    "ows-cli",
+    "wsl-ows"
+  ],
+  "local_state_path": "/home/bubblevan/.stablepay-openclaw/stablepay-local-state.enc",
+  "has_wallet": true,
+  "wallet": {
+    "wallet_id": "stablepay-bubblevan2-fixed",
+    "wallet_name": "stablepay-bubblevan2-fixed",
+    "did": "did:solana:C2vKSxoDErVhhLrKZvXHMmJcNKqKapx9MNQZrDab33vS",
+    "wallet_address": "C2vKSxoDErVhhLrKZvXHMmJcNKqKapx9MNQZrDab33vS",
+    "runtime_driver": "ows-sdk",
+    "backend_did": "did:solana:C2vKSxoDErVhhLrKZvXHMmJcNKqKapx9MNQZrDab33vS"
+  },
+  "payment_config": {
+    "singlePurchaseLimitUsdc": 10,
+    "autoPurchaseThresholdUsdc": 5,
+    "currency": "USDC",
+    "updatedAt": "2026-04-13T09:04:43.059Z"
+  },
+  "policy": null,
+  "notes": []
+}
+
+=== step 1: GET /api/v1/pay/require ===
+{
+  "httpStatus": 402,
+  "payload": {
+    "code": 402,
+    "message": "Payment Required",
+    "data": {
+      "currency": "USDC",
+      "message": "Pay to unlock",
+      "payment_endpoint": "/api/v1/pay",
+      "price": "1.00",
+      "skill_did": "did:solana:2kZGwkLnVdSxjjNueeUQmqBf3tRKMn7y1bbktRZkJWdR",
+      "skill_name": "ManualDemoSkill2"
+    },
+    "request_id": "e6935b31-b9b8-427c-a793-c346007ba047",
+    "timestamp": "2026-04-13T09:05:13Z"
+  }
+}
+
+=== step 2: settlePaymentViaGateway ===
+{
+  "agentDid": "did:solana:C2vKSxoDErVhhLrKZvXHMmJcNKqKapx9MNQZrDab33vS",
+  "agentWalletAddress": "C2vKSxoDErVhhLrKZvXHMmJcNKqKapx9MNQZrDab33vS",
+  "walletId": "stablepay-bubblevan2-fixed",
+  "walletName": "stablepay-bubblevan2-fixed",
+  "activeDriver": "ows-sdk",
+  "requirement": {
+    "currency": "USDC",
+    "message": "Pay to unlock",
+    "payment_endpoint": "/api/v1/pay",
+    "price": "1.00",
+    "skill_did": "did:solana:2kZGwkLnVdSxjjNueeUQmqBf3tRKMn7y1bbktRZkJWdR",
+    "skill_name": "ManualDemoSkill2"
+  }
+}
+
+=== result ===
+{
+  "ok": true,
+  "result": {
+    "pay_response": {
+      "created_at": "2026-04-13T09:05:15Z",
+      "status": "PENDING",
+      "tx_hash": "2apthomnZqeLqbLqL27sQGGynD5zX7LMHgtXEth54KcXYL5y8XyFug8vJg37nUSF6XTZwkUr1fSphMKSuerQbv9a",
+      "tx_id": "644438c7-b3e7-4454-99f4-2dfead5d873e"
+    },
+    "agent_did": "did:solana:C2vKSxoDErVhhLrKZvXHMmJcNKqKapx9MNQZrDab33vS",
+    "skill_did": "did:solana:2kZGwkLnVdSxjjNueeUQmqBf3tRKMn7y1bbktRZkJWdR",
+    "price": "1.00",
+    "currency": "USDC",
+    "amount_minor": 1000000,
+    "signed_tx_hash_sha256": "7eae6a4aa010dff348a7a1888cc3a9f02c87e7a3615a34e6086a696c83cf4eee",
+    "order_id": "openclaw-1776071115046-f12fc111",
+    "gateway": {
+      "timestamp": "2026-04-13T09:05:15.046Z",
+      "nonce": "gw-1776071115046-a46c0088",
+      "canonical": "POST\n/api/v1/pay\n\nbedf6b36c93cd6a0a9d15d469dd22ecc83bcc95f6788033ab95f6b46668c5c7a"
+    },
+    "business": {
+      "message_core": "did:solana:C2vKSxoDErVhhLrKZvXHMmJcNKqKapx9MNQZrDab33vS|did:solana:2kZGwkLnVdSxjjNueeUQmqBf3tRKMn7y1bbktRZkJWdR|1000000|1|7eae6a4aa010dff348a7a1888cc3a9f02c87e7a3615a34e6086a696c83cf4eee",
+      "timestamp": 1776071114,
+      "nonce": "biz-1776071114948-113da479"
+    },
+    "compact_body": "{\"agent_did\":\"did:solana:C2vKSxoDErVhhLrKZvXHMmJcNKqKapx9MNQZrDab33vS\",\"skill_did\":\"did:solana:2kZGwkLnVdSxjjNueeUQmqBf3tRKMn7y1bbktRZkJWdR\",\"amount\":\"1.00\",\"currency\":\"USDC\",\"signed_tx_base64\":\"AgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA7iIFL+TrR1fpAlLWTNNEazN44rgeeNzLQMBVEgbEQVeaDy/wLH87K2ZoAxsaikVTuMn2T6ehJhDiD+Ha8/NEKAgEBBdU79HuYnzOUItuavqEtgrUj93sjJn4appdKFVdZSoJeo+5shk4v8EtiLK05wdxIYgoJPCC3d4af7WSKkSh4N/PPtD+kPBI940pQUgzvXogrAAc5cViSPHIW8SPhGczr7/EONKOeeWSXqWn1oDmzohPQanhUPX16ZDWiI1LFFcpgBt324ddloZPZy+FGzut5rBy0he1fWzeROoz1hX7/AKmIrs51wCXjWJVH/atCji51e0lYqdibdudbYC5hRIi6UQEEAwIDAQkDQEIPAAAAAAA=\",\"signature\":\"AhF4Vm4Cnw7sHnwchtEHLLr2YTbWsesx1PnTdHPniWnkQgvCvkyjhsdzfmBGj75MzXEU8541MLQxHdpU5pyQPJZ\",\"order_id\":\"openclaw-1776071115046-f12fc111\",\"timestamp\":1776071114,\"nonce\":\"biz-1776071114948-113da479\"}"
+  }
+}
+
+=== pay_response ===
+{
+  "created_at": "2026-04-13T09:05:15Z",
+  "status": "PENDING",
+  "tx_hash": "2apthomnZqeLqbLqL27sQGGynD5zX7LMHgtXEth54KcXYL5y8XyFug8vJg37nUSF6XTZwkUr1fSphMKSuerQbv9a",
+  "tx_id": "644438c7-b3e7-4454-99f4-2dfead5d873e"
+}
+
+=== useful fields ===
+{
+  "tx_id": "644438c7-b3e7-4454-99f4-2dfead5d873e",
+  "signed_tx_hash_sha256": "7eae6a4aa010dff348a7a1888cc3a9f02c87e7a3615a34e6086a696c83cf4eee",
+  "gateway": {
+    "timestamp": "2026-04-13T09:05:15.046Z",
+    "nonce": "gw-1776071115046-a46c0088",
+    "canonical": "POST\n/api/v1/pay\n\nbedf6b36c93cd6a0a9d15d469dd22ecc83bcc95f6788033ab95f6b46668c5c7a"
+  },
+  "business": {
+    "message_core": "did:solana:C2vKSxoDErVhhLrKZvXHMmJcNKqKapx9MNQZrDab33vS|did:solana:2kZGwkLnVdSxjjNueeUQmqBf3tRKMn7y1bbktRZkJWdR|1000000|1|7eae6a4aa010dff348a7a1888cc3a9f02c87e7a3615a34e6086a696c83cf4eee",
+    "timestamp": 1776071114,
+    "nonce": "biz-1776071114948-113da479"
+  }
+}
+(base) bubblevan@Bubbles:/mnt/d/MyLab/StablePay/stablepay-openclaw-plugin$ node decode-signed-tx.mjs \
+  --tx-base64='AgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA7iIFL+TrR1fpAlLWTNNEazN44rgeeNzLQMBVEgbEQVeaDy/wLH87K2ZoAxsaikVTuMn2T6ehJhDiD+Ha8/NEKAgEBBdU79HuYnzOUItuavqEtgrUj93sjJn4appdKFVdZSoJeo+5shk4v8EtiLK05wdxIYgoJPCC3d4af7WSKkSh4N/PPtD+kPBI940pQUgzvXogrAAc5cViSPHIW8SPhGczr7/EONKOeeWSXqWn1oDmzohPQanhUPX16ZDWiI1LFFcpgBt324ddloZPZy+FGzut5rBy0he1fWzeROoz1hX7/AKmIrs51wCXjWJVH/atCji51e0lYqdibdudbYC5hRIi6UQEEAwIDAQkDQEIPAAAAAAA=\' \
+  --mint=4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU \
+  --from-owner=C2vKSxoDErVhhLrKZvXHMmJcNKqKapx9MNQZrDab33vS \
+  --to-owner=2kZGwkLnVdSxjjNueeUQmqBf3tRKMn7y1bbktRZkJWdR \
+  --fee-payer=FMNs7xqezz4bYYioPyfqPzxLLmZyJhjSzbGApMdnrC2Z
+bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
+=== basic ===
+{
+  "txBase64Length": 457,
+  "numSignaturesSlots": 2,
+  "numRequiredSignatures": 2,
+  "numReadonlySignedAccounts": 1,
+  "numReadonlyUnsignedAccounts": 1,
+  "recentBlockhash": "ACZ3htK1EueUTdh4qEftWjv4wEfvfSEQxSAKHRQyPRxk",
+  "feePayer": "FMNs7xqezz4bYYioPyfqPzxLLmZyJhjSzbGApMdnrC2Z",
+  "feePayerMatchesExpected": true
+}
+
+=== signer slots ===
+{
+  "signerIndex": 0,
+  "publicKey": "FMNs7xqezz4bYYioPyfqPzxLLmZyJhjSzbGApMdnrC2Z",
+  "short": "FMNs7x...dnrC2Z",
+  "hasSignature": false,
+  "signatureHexPrefix": null
+}
+{
+  "signerIndex": 1,
+  "publicKey": "C2vKSxoDErVhhLrKZvXHMmJcNKqKapx9MNQZrDab33vS",
+  "short": "C2vKSx...ab33vS",
+  "hasSignature": true,
+  "signatureHexPrefix": "3b88814bf93ad1d5fa4094b59334d11a"
+}
+
+=== message account keys (ordered) ===
+{
+  "index": 0,
+  "publicKey": "FMNs7xqezz4bYYioPyfqPzxLLmZyJhjSzbGApMdnrC2Z",
+  "short": "FMNs7x...dnrC2Z",
+  "isSigner": true,
+  "isWritable": true,
+  "isFeePayer": true,
+  "isExpectedFromOwner": false,
+  "isExpectedToOwner": false,
+  "isExpectedFeePayer": true,
+  "isExpectedFromAta": false,
+  "isExpectedToAta": false,
+  "isTokenProgram": false,
+  "isAssociatedTokenProgram": false
+}
+{
+  "index": 1,
+  "publicKey": "C2vKSxoDErVhhLrKZvXHMmJcNKqKapx9MNQZrDab33vS",
+  "short": "C2vKSx...ab33vS",
+  "isSigner": true,
+  "isWritable": false,
+  "isFeePayer": false,
+  "isExpectedFromOwner": true,
+  "isExpectedToOwner": false,
+  "isExpectedFeePayer": false,
+  "isExpectedFromAta": false,
+  "isExpectedToAta": false,
+  "isTokenProgram": false,
+  "isAssociatedTokenProgram": false
+}
+{
+  "index": 2,
+  "publicKey": "Eynom6dUsWZ3pzFMdJMXrki8Jyi2qe5nxaUye6nXyaWz",
+  "short": "Eynom6...nXyaWz",
+  "isSigner": false,
+  "isWritable": true,
+  "isFeePayer": false,
+  "isExpectedFromOwner": false,
+  "isExpectedToOwner": false,
+  "isExpectedFeePayer": false,
+  "isExpectedFromAta": true,
+  "isExpectedToAta": false,
+  "isTokenProgram": false,
+  "isAssociatedTokenProgram": false
+}
+{
+  "index": 3,
+  "publicKey": "HDypV47xYU9ZM7Jn2ogsPoGK3BuiYPQahuT5MQngFZFu",
+  "short": "HDypV4...ngFZFu",
+  "isSigner": false,
+  "isWritable": true,
+  "isFeePayer": false,
+  "isExpectedFromOwner": false,
+  "isExpectedToOwner": false,
+  "isExpectedFeePayer": false,
+  "isExpectedFromAta": false,
+  "isExpectedToAta": true,
+  "isTokenProgram": false,
+  "isAssociatedTokenProgram": false
+}
+{
+  "index": 4,
+  "publicKey": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+  "short": "Tokenk...3VQ5DA",
+  "isSigner": false,
+  "isWritable": false,
+  "isFeePayer": false,
+  "isExpectedFromOwner": false,
+  "isExpectedToOwner": false,
+  "isExpectedFeePayer": false,
+  "isExpectedFromAta": false,
+  "isExpectedToAta": false,
+  "isTokenProgram": true,
+  "isAssociatedTokenProgram": false
+}
+
+=== expected ATA ===
+{
+  "mint": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+  "fromOwner": "C2vKSxoDErVhhLrKZvXHMmJcNKqKapx9MNQZrDab33vS",
+  "toOwner": "2kZGwkLnVdSxjjNueeUQmqBf3tRKMn7y1bbktRZkJWdR",
+  "feePayerExpected": "FMNs7xqezz4bYYioPyfqPzxLLmZyJhjSzbGApMdnrC2Z",
+  "expectedFromAta": "Eynom6dUsWZ3pzFMdJMXrki8Jyi2qe5nxaUye6nXyaWz",
+  "expectedToAta": "HDypV47xYU9ZM7Jn2ogsPoGK3BuiYPQahuT5MQngFZFu"
+}
+
+=== instructions ===
+--- instruction 0 ---
+{
+  "ixIndex": 0,
+  "programId": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+  "isTokenProgram": true,
+  "isAssociatedTokenProgram": false,
+  "dataHex": "0340420f0000000000"
+}
+{
+  "ixIndex": 0,
+  "keyIndex": 0,
+  "publicKey": "Eynom6dUsWZ3pzFMdJMXrki8Jyi2qe5nxaUye6nXyaWz",
+  "short": "Eynom6...nXyaWz",
+  "isSigner": false,
+  "isWritable": true,
+  "isExpectedFromOwner": false,
+  "isExpectedToOwner": false,
+  "isExpectedFeePayer": false,
+  "isExpectedFromAta": true,
+  "isExpectedToAta": false,
+  "isTokenProgram": false,
+  "isAssociatedTokenProgram": false
+}
+{
+  "ixIndex": 0,
+  "keyIndex": 1,
+  "publicKey": "HDypV47xYU9ZM7Jn2ogsPoGK3BuiYPQahuT5MQngFZFu",
+  "short": "HDypV4...ngFZFu",
+  "isSigner": false,
+  "isWritable": true,
+  "isExpectedFromOwner": false,
+  "isExpectedToOwner": false,
+  "isExpectedFeePayer": false,
+  "isExpectedFromAta": false,
+  "isExpectedToAta": true,
+  "isTokenProgram": false,
+  "isAssociatedTokenProgram": false
+}
+{
+  "ixIndex": 0,
+  "keyIndex": 2,
+  "publicKey": "C2vKSxoDErVhhLrKZvXHMmJcNKqKapx9MNQZrDab33vS",
+  "short": "C2vKSx...ab33vS",
+  "isSigner": true,
+  "isWritable": false,
+  "isExpectedFromOwner": true,
+  "isExpectedToOwner": false,
+  "isExpectedFeePayer": false,
+  "isExpectedFromAta": false,
+  "isExpectedToAta": false,
+  "isTokenProgram": false,
+  "isAssociatedTokenProgram": false
+}

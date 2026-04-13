@@ -33,9 +33,9 @@
       "requestTimeoutMs": {
         "type": "integer",
         "minimum": 1000,
-        "maximum": 30000,
-        "default": 8000,
-        "description": "HTTP request timeout in milliseconds"
+        "maximum": 180000,
+        "default": 90000,
+        "description": "HTTP request timeout in milliseconds (pay flow may need 60s+; gateway payment client uses 90s)"
       },
       "rewardAmount": {
         "type": "number",

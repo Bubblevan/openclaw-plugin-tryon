@@ -48,6 +48,17 @@ export type CreateLocalWalletParams = {
   ows_wallet_id?: string;
 };
 
+/** Import/bind an existing OWS vault wallet by name + Solana pubkey; does not call createWallet. */
+export type BindExistingWalletParams = {
+  /** OWS wallet name (must already exist in vault for ows-sdk / CLI paths). */
+  wallet_name: string;
+  /** Expected Solana address Base58; must match vault + pass challenge signature verification. */
+  public_key: string;
+  runtime?: RuntimeDriver;
+  /** Required when runtime resolves to ows-rest (unless plugin config sets owsRestWalletId). */
+  ows_wallet_id?: string;
+};
+
 export type RegisterLocalDidParams = {
   user_type?: "agent" | "developer";
   register_path?: string;

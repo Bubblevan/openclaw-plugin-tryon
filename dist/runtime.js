@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { verifySolanaWalletMessageUtf8 } from "./bind_verify.js";
 import { signSolanaMessageHexWithOwsCli } from "./ows_sign_tx.js";
 import { stablePayDebug } from "./plugin_log.js";
 const BASE58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
@@ -63,6 +64,89 @@ export class StablePayRuntime {
             notes: availability.notes,
         };
     }
+    /**
+     * Bind an existing OWS wallet (by name) to local encrypted state — no createWallet.
+     * Signs a random challenge and verifies Ed25519 against `public_key` before persisting.
+     */
+    async bindExistingWallet(params) {
+        const walletName = params.wallet_name.trim();
+        const publicKeyExpected = params.public_key.trim();
+        if (!walletName)
+            throw new Error("wallet_name is required");
+        if (!publicKeyExpected)
+            throw new Error("public_key is required");
+        const rawRuntime = params.runtime ?? this.cfg.owsRuntime;
+        const availability = await this.detectAvailability(rawRuntime === "auto" ? undefined : rawRuntime);
+        const activeDriver = availability.activeDriver;
+        let wallet;
+        if (activeDriver === "ows-sdk") {
+            const ows = await this.tryLoadOwsSdk();
+            if (!ows)
+                throw new Error("OWS SDK runtime is not available in the current environment");
+            let info;
+            try {
+                info = ows.getWallet(walletName, this.cfg.owsVaultPath || undefined);
+            }
+            catch (e) {
+                const msg = e instanceof Error ? e.message : String(e);
+                throw new Error(`OWS getWallet("${walletName}") failed: ${msg}`);
+            }
+            const sol = info.accounts.find((a) => a.chainId.toLowerCase().includes("solana"));
+            if (!sol)
+                throw new Error("OWS wallet does not expose a Solana account");
+            if (sol.address !== publicKeyExpected) {
+                throw new Error(`public_key mismatch: expected vault Solana address ${sol.address} for wallet "${walletName}", got ${publicKeyExpected}`);
+            }
+            wallet = {
+                walletId: info.id,
+                walletName: info.name,
+                did: `did:solana:${sol.address}`,
+                publicKey: sol.address,
+                walletAddress: sol.address,
+                runtimeDriver: "ows-sdk",
+                provider: "ows",
+                createdAt: info.createdAt || new Date().toISOString(),
+            };
+        }
+        else if (activeDriver === "ows-cli" || activeDriver === "wsl-ows") {
+            wallet = this.createOwsCliLinkedWallet(walletName, publicKeyExpected, activeDriver);
+        }
+        else if (activeDriver === "ows-rest") {
+            const cfg = this.cfg;
+            const wid = (params.ows_wallet_id?.trim() || cfg.owsRestWalletId || "").trim();
+            if (!wid) {
+                throw new Error("ows_wallet_id is required for ows-rest (or set owsRestWalletId in plugin config).");
+            }
+            wallet = this.createOwsRestLinkedWallet(walletName, publicKeyExpected, wid);
+        }
+        else {
+            throw new Error(`unsupported OWS runtime: ${activeDriver}`);
+        }
+        const challenge = `stablepay-bind|${walletName}|${Date.now()}|${crypto.randomUUID()}`;
+        const provider = this.providerForDriver(activeDriver);
+        const signature = await provider.signMessage(wallet, {
+            message: challenge,
+            chain: "solana",
+            append_timestamp_nonce: false,
+        });
+        if (!verifySolanaWalletMessageUtf8(challenge, signature, publicKeyExpected)) {
+            throw new Error("Bind verification failed: signature does not match public_key for this wallet_name (wrong name, key, or signing runtime).");
+        }
+        const state = await this.loadState();
+        state.wallet = wallet;
+        await this.saveState(state);
+        return {
+            runtime_driver: activeDriver,
+            wallet_id: wallet.walletId,
+            wallet_name: wallet.walletName,
+            did: wallet.did,
+            public_key: wallet.publicKey,
+            wallet_address: wallet.walletAddress,
+            created_at: wallet.createdAt,
+            bind_verified: true,
+            notes: availability.notes,
+        };
+    }
     async registerWallet(record) {
         const state = await this.requireWalletState();
         state.backendDid = record;
@@ -97,7 +181,7 @@ export class StablePayRuntime {
     async buildPaymentPolicy(params) {
         const state = await this.loadState();
         if (!state.wallet)
-            throw new Error("No local wallet found. Create a wallet first.");
+            throw new Error("No local wallet found. Create or bind a wallet first.");
         if (!state.paymentConfig)
             throw new Error("No payment config found. Configure payment limits first.");
         const createdAt = new Date().toISOString();
@@ -366,7 +450,7 @@ export class StablePayRuntime {
     async requireWalletState() {
         const state = await this.loadState();
         if (!state.wallet)
-            throw new Error("No local wallet found. Create a wallet first.");
+            throw new Error("No local wallet found. Create or bind a wallet first.");
         return state.wallet;
     }
     async detectAvailability(preferred) {

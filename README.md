@@ -39,7 +39,12 @@ openclaw gateway restart
 
 ### 2) 准备 OWS 钱包
 
-`ows-cli` / `wsl-ows` 模式不会代替你创建“可用 OWS 钱包”，你需要先有真实钱包：
+你需要在 OWS 侧先有**买家**钱包（`ows wallet create` 或已导入的 vault钱包）。插件侧两条入口语义不同：
+
+| 工具 | 何时使用 |
+|------|----------|
+| `stablepay_create_local_wallet` | **新建**钱包：`ows-sdk` 会调 `createWallet`；CLI/REST 路径则是「绑定名+公钥」但不验 challenge。 |
+| `stablepay_bind_existing_wallet` | **只绑定已有** vault/CLI/REST 钱包：按 `wallet_name` + `public_key`，现场签 challenge 并用 Ed25519 验签通过后才写入本地 state，避免名/钥错配。 |
 
 ```bash
 ows wallet create --name "stablepay-agent"
@@ -52,6 +57,8 @@ ows wallet list
 - 买家钱包名（如 `stablepay-agent`）
 - 买家 Solana 地址（Base58）
 - 卖家 Solana 地址（Base58，用于 `skill_did`）
+
+已有买家钱包、且用 `ows-sdk` 时，推荐用 **`stablepay_bind_existing_wallet`**，不要用 `create` 再生成一个新钱包。
 
 ### 3) 设置环境变量
 
@@ -89,7 +96,7 @@ ows wallet list
           "solanaRpcUrl": "https://api.devnet.solana.com",
           "splTokenMintAddress": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
           "owsRuntime": "auto",
-          "didRegisterPath": "/api/v1/did"
+          "didRegisterPath": "/api/v1/did/register"
         }
       }
     }
@@ -142,7 +149,7 @@ ows wallet list
 只验证插件与网关支付 API：
 
 1. `stablepay_runtime_status`
-2. `stablepay_create_local_wallet`
+2. `stablepay_bind_existing_wallet`（已有 OWS 钱包）或 `stablepay_create_local_wallet`（新建）
 3. `stablepay_register_local_did`
 4. `stablepay_configure_payment_limits`
 5. `stablepay_pay_via_gateway`（传 `skill_did` / `skill_name` / `price` / `currency`）
@@ -171,7 +178,7 @@ openclaw tui
 ### TUI 推荐工具顺序
 
 1. `stablepay_runtime_status`：先确认 runtime 与本地状态
-2. `stablepay_create_local_wallet`：绑定买家钱包（`public_key` 必填于 `ows-cli/wsl-ows`）
+2. 买家钱包：**已有**用 `stablepay_bind_existing_wallet`（`wallet_name` + `public_key`，可选 `runtime`）；**新建**用 `stablepay_create_local_wallet`（`ows-cli/wsl-ows` 仍需 `public_key`）
 3. `stablepay_register_local_did`：登记 DID
 4. `stablepay_configure_payment_limits`：设置限额
 5. 路径 A：`stablepay_pay_via_gateway`（直接触发 402 支付链路）
@@ -196,8 +203,9 @@ openclaw tui
 | 工具名 | Optional | 用途说明 |
 |--------|----------|----------|
 | `stablepay_runtime_status` | 否 | 查看插件 runtime、本地状态路径、当前钱包、OWS/本地驱动可用性；不含链上或网关余额。 |
-| `stablepay_create_local_wallet` | 否 | 按配置创建/绑定买家侧钱包（OWS SDK/CLI/REST 或 local-dev），写入加密本地状态。 |
-| `stablepay_register_local_did` | 否 | 将当前本地钱包公钥登记到网关（默认 `POST /api/v1/did`），拿到 `backend_did` 供后续支付与鉴权。 |
+| `stablepay_create_local_wallet` | 否 | **新建**买家侧钱包：`ows-sdk` 调 `createWallet`；CLI/REST 为「名+公钥」写入 state（无 challenge 验签）。 |
+| `stablepay_bind_existing_wallet` | 否 | **绑定已有** OWS 钱包：`wallet_name` + `public_key`；`ows-sdk` 用 `getWallet` 核对地址；全体路径签 challenge 并验 Ed25519 后才落盘。`ows-rest` 需 `ows_wallet_id`（或配置默认）。 |
+| `stablepay_register_local_did` | 否 | 将当前本地钱包公钥登记到网关（默认 `POST /api/v1/did/register`），拿到 `backend_did` 供后续支付与鉴权。 |
 | `stablepay_configure_payment_limits` | 否 | 写入本地加密状态：单次购买上限、自动购买阈值等，支付前策略校验用。 |
 | `stablepay_build_payment_policy` | 否 | 根据当前限额与钱包状态生成本地 OWS 向的支付策略 manifest（后续 OWS 策略注册接入点）。 |
 | `stablepay_sign_message` | 否 | 用当前钱包对消息签名；`append_timestamp_nonce=true` 时对齐网关 canonical + 时间戳 + nonce 的签法。 |
@@ -220,6 +228,10 @@ openclaw tui
 
 3) 为什么我配了钱包还提示 `public_key` 缺失？
 - 你在 `ows-cli` / `wsl-ows` 模式；该模式必须传 `public_key`（`ows wallet list` 的 Solana 地址）。
+
+3b) `create` 和 `bind` 怎么选？
+- 要在 vault 里**新造**密钥用 `stablepay_create_local_wallet`（SDK）或先在 CLI `ows wallet create` 再按需绑定。
+- vault 里**已经有**钱包、且希望名与公钥一致并可验签，用 `stablepay_bind_existing_wallet`。
 
 4) 为什么 `ows-cli` / `wsl-ows` 要先自己准备 OWS 钱包？
 - 插件做的是“绑定并使用”已有钱包，不替代 OWS 全生命周期管理。

@@ -48,7 +48,7 @@ export default definePluginEntry({
         api.registerTool({
             label: "Create Local Wallet",
             name: "stablepay_create_local_wallet",
-            description: "Create a StablePay wallet for OpenClaw using OWS runtime (SDK/CLI/REST).",
+            description: "Create a **new** StablePay/OWS wallet (SDK path calls `createWallet`). For an **existing** vault wallet by name, use `stablepay_bind_existing_wallet` instead.",
             parameters: Type.Object({
                 user_id: Type.Optional(Type.String({ description: "Stable user identifier used in the wallet name, for example alice." })),
                 user_type: Type.Optional(Type.Union([Type.Literal("agent"), Type.Literal("developer")])),
@@ -60,7 +60,7 @@ export default definePluginEntry({
                     Type.Literal("ows-rest"),
                 ])),
                 public_key: Type.Optional(Type.String({
-                    description: "Required for ows-cli, wsl-ows, ows-rest: Solana public key Base58 from OWS (`ows wallet list`).",
+                    description: "Required for ows-cli, wsl-ows, ows-rest: Solana public key Base58 from OWS (`ows wallet list`). Not used for ows-sdk create path.",
                 })),
                 ows_wallet_id: Type.Optional(Type.String({ description: "OWS wallet UUID for ows-rest when not set in plugin config." })),
             }, { additionalProperties: false }),
@@ -83,6 +83,44 @@ export default definePluginEntry({
             },
         });
         api.registerTool({
+            label: "Bind Existing Wallet",
+            name: "stablepay_bind_existing_wallet",
+            description: "Bind an **existing** OWS wallet (already in vault / CLI / REST) to local encrypted state. Does not create a new wallet. Verifies control by signing a challenge and checking Ed25519 against `public_key`.",
+            parameters: Type.Object({
+                wallet_name: Type.String({ description: "Existing OWS wallet name (e.g. from `ows wallet list`)." }),
+                public_key: Type.String({
+                    description: "Expected Solana address Base58 for that wallet; must match vault and challenge signature.",
+                }),
+                runtime: Type.Optional(Type.Union([
+                    Type.Literal("auto"),
+                    Type.Literal("ows-sdk"),
+                    Type.Literal("ows-cli"),
+                    Type.Literal("wsl-ows"),
+                    Type.Literal("ows-rest"),
+                ])),
+                ows_wallet_id: Type.Optional(Type.String({
+                    description: "Required for ows-rest when plugin config has no default `owsRestWalletId`.",
+                })),
+            }, { additionalProperties: false }),
+            async execute(_id, params) {
+                try {
+                    const bound = await runtime.bindExistingWallet(params);
+                    return textResult([
+                        `StablePay wallet bound and verified (no new wallet created).`,
+                        `DID: ${bound.did}`,
+                        `Wallet: ${bound.wallet_address}`,
+                        `Wallet ID: ${bound.wallet_id}`,
+                        `Runtime: ${bound.runtime_driver}`,
+                        `JSON:`,
+                        formatJson(bound),
+                    ].join("\n"));
+                }
+                catch (error) {
+                    return errorResult("Failed to bind existing StablePay wallet", error);
+                }
+            },
+        });
+        api.registerTool({
             label: "Register Local DID",
             name: "stablepay_register_local_did",
             description: "Register the current local wallet with StablePay through API Gateway. This is the target A1/A2 path when the backend supports DID registration for client-side wallets.",
@@ -94,7 +132,7 @@ export default definePluginEntry({
                 try {
                     const status = await runtime.getStatus();
                     if (!status.wallet) {
-                        throw new Error("No local wallet found. Create a local wallet first.");
+                        throw new Error("No local wallet found. Create (`stablepay_create_local_wallet`) or bind (`stablepay_bind_existing_wallet`) first.");
                     }
                     let registered;
                     registered = await client.registerLocalDid({
@@ -224,7 +262,7 @@ export default definePluginEntry({
                 try {
                     const status = await runtime.getStatus();
                     if (!status.wallet) {
-                        throw new Error("No local wallet found. Create a local wallet first.");
+                        throw new Error("No local wallet found. Create (`stablepay_create_local_wallet`) or bind (`stablepay_bind_existing_wallet`) first.");
                     }
                     if (!status.wallet.backend_did) {
                         throw new Error("No backend DID mapping found. Run stablepay_register_local_did first.");
@@ -338,7 +376,7 @@ export default definePluginEntry({
                 try {
                     const status = await runtime.getStatus();
                     if (!status.wallet) {
-                        throw new Error("No local wallet found. Create a local wallet first.");
+                        throw new Error("No local wallet found. Create (`stablepay_create_local_wallet`) or bind (`stablepay_bind_existing_wallet`) first.");
                     }
                     if (!status.wallet.backend_did) {
                         throw new Error("No backend DID mapping found. Run stablepay_register_local_did first.");

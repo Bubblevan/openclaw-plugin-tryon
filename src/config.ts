@@ -3,7 +3,8 @@ import path from "node:path";
 
 import type { PluginConfig } from "./types.js";
 
-const DEFAULT_TIMEOUT_MS = 8000;
+/** POST /api/v1/pay can exceed 8–10s (RPC + chain); keep in sync with api-gateway payment client. */
+const DEFAULT_TIMEOUT_MS = 90_000;
 const DEFAULT_REWARD_AMOUNT = 1;
 const DEFAULT_STATE_FILE = path.join(os.homedir(), ".stablepay-openclaw", "stablepay-local-state.enc");
 const DEFAULT_MASTER_KEY_ENV = "STABLEPAY_PLUGIN_MASTER_KEY";
