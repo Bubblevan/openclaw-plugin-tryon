@@ -3,7 +3,7 @@ import { getPluginConfig } from "../dist/config.js";
 
 const fakeApi = {
   pluginConfig: {
-    backendBaseUrl: "http://127.0.0.1:28080",
+    backendBaseUrl: "https://ai.wenfu.cn",
     feePayerSolanaAddress: process.env.STABLEPAY_FEE_PAYER_SOL || "",
     owsRuntime: "auto",
   },

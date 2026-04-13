@@ -24,8 +24,9 @@ const confirmOverThreshold = getArg("confirm-over-threshold", "false") === "true
 
 const fakeApi = {
   pluginConfig: {
-    backendBaseUrl: getArg("backend-base-url", "http://127.0.0.1:28080"),
+    backendBaseUrl: getArg("backend-base-url", "https://ai.wenfu.cn"),
     didRegisterPath: getArg("did-register-path", "/api/v1/did/register"),
+    solanaRpcUrl: getArg("solana-rpc-url", "https://api.devnet.solana.com"),
     solanaRpcUrl: getArg("solana-rpc-url", "https://api.devnet.solana.com"),
     splTokenMintAddress: getArg(
       "spl-token-mint-address",

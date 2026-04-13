@@ -16,7 +16,7 @@ const DEFAULT_OWS_REST_SIGN_PATH = "/v1/sign/message";
 const DEFAULT_OWS_REST_API_KEY_ENV = "STABLEPAY_OWS_REST_API_KEY";
 const DEFAULT_OWS_REST_CHAIN_ID = "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp";
 /** api-gateway host port from stablepayai-idl docker-compose.services.yml */
-const DEFAULT_BACKEND_URL = "http://127.0.0.1:28080";
+const DEFAULT_BACKEND_URL = "https://ai.wenfu.cn";
 const DEFAULT_SOLANA_RPC = "https://api.devnet.solana.com";
 /** Devnet USDC (ows-pay.md) */
 const DEFAULT_SPL_MINT = "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU";

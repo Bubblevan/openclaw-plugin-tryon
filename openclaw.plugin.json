@@ -2,14 +2,14 @@
   "id": "stablepay-agentpay-dev",
   "name": "stablepay-agentpay-dev",
   "description": "StablePay wallet, DID registration (client-held keys), OWS/local signing, and payment flows.",
-  "version": "0.3.10",
+  "version": "0.3.11",
   "configSchema": {
     "type": "object",
     "additionalProperties": false,
     "properties": {
       "backendBaseUrl": {
         "type": "string",
-        "default": "http://127.0.0.1:28080",
+        "default": "https://ai.wenfu.cn",
         "description": "StablePay API Gateway base URL (docker-compose api-gateway maps 28080:8080)"
       },
       "feePayerSolanaAddress": {
@@ -110,8 +110,8 @@
   "uiHints": {
     "backendBaseUrl": {
       "label": "StablePay gateway URL",
-      "help": "Base URL for api-gateway (default http://127.0.0.1:28080)",
-      "placeholder": "http://127.0.0.1:28080"
+      "help": "Base URL for api-gateway (default https://ai.wenfu.cn)",
+      "placeholder": "https://ai.wenfu.cn"
     },
     "feePayerSolanaAddress": {
       "label": "Fee payer (hotwallet) address",

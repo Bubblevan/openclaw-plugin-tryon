@@ -4,7 +4,7 @@
       "stablepay-agentpay-dev": {
         "enabled": true,
         "config": {
-          "backendBaseUrl": "http://127.0.0.1:28080",
+          "backendBaseUrl": "https://ai.wenfu.cn",
           "feePayerSolanaAddress": "REPLACE_WITH_PLATFORM_HOTWALLET_SOLANA_PUBKEY",
           "solanaRpcUrl": "https://api.devnet.solana.com",
           "splTokenMintAddress": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",

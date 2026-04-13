@@ -19,6 +19,8 @@ export async function buildUnsignedSplTransferTxBase64(input) {
     const { blockhash } = await conn.getLatestBlockhash("confirmed");
     tx.recentBlockhash = blockhash;
     tx.feePayer = feePayerPk;
+    // eslint-disable-next-line no-console
+    console.log("[tx_builder] recentBlockhash (unsigned):", blockhash);
     const raw = tx.serialize({ requireAllSignatures: false, verifySignatures: false });
     return Buffer.from(raw).toString("base64");
 }
@@ -51,8 +53,12 @@ export async function buildPartiallySignedSplTransferTx(input) {
     const { blockhash } = await conn.getLatestBlockhash("confirmed");
     tx.recentBlockhash = blockhash;
     tx.feePayer = feePayerPk;
+    // eslint-disable-next-line no-console
+    console.log("[tx_builder] recentBlockhash (partial sign):", blockhash);
     const unsignedRaw = tx.serialize({ requireAllSignatures: false, verifySignatures: false });
     const unsigned_tx_base64 = Buffer.from(unsignedRaw).toString("base64");
+    // eslint-disable-next-line no-console
+    console.log("[tx_builder] unsigned_tx_base64:", unsigned_tx_base64);
     const messageHex = Buffer.from(tx.serializeMessage()).toString("hex");
     stablePayDebug("spl_tx: signing serialized message", {
         message_hex_chars: messageHex.length,
@@ -68,5 +74,9 @@ export async function buildPartiallySignedSplTransferTx(input) {
     const partiallySignedRaw = tx.serialize({ requireAllSignatures: false, verifySignatures: false });
     const signed_tx_base64 = Buffer.from(partiallySignedRaw).toString("base64");
     const signed_tx_hash_sha256 = createHash("sha256").update(signed_tx_base64, "utf8").digest("hex");
+    // eslint-disable-next-line no-console
+    console.log("[tx_builder] signed_tx_base64:", signed_tx_base64);
+    // eslint-disable-next-line no-console
+    console.log("[tx_builder] signed_tx_hash_sha256:", signed_tx_hash_sha256);
     return { signed_tx_base64, unsigned_tx_base64, signed_tx_hash_sha256 };
 }

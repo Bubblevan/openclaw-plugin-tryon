@@ -4,7 +4,7 @@
 
 ## 前置
 
-1. Docker 栈已启动（`stablepayai-idl/docker-compose.infra.yml` + `docker-compose.services.yml`），Gateway 可达（例如 `http://127.0.0.1:28080`）。
+1. Docker 栈已启动（`stablepayai-idl/docker-compose.infra.yml` + `docker-compose.services.yml`）或使用线上网关，Gateway 可达（例如 `https://ai.wenfu.cn`）。
 2. WSL 中已安装 [OWS CLI](https://docs.openwallet.sh/)（`ows --version` 成功）。
 3. OpenClaw 插件配置 `backendBaseUrl` 指向 Gateway；`STABLEPAY_PLUGIN_MASTER_KEY` 已设置。
 4. 真实支付需提供 fee payer 公钥（二选一）：插件配置 `feePayerSolanaAddress` 或环境变量 `STABLEPAY_FEE_PAYER_SOL`。

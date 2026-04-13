@@ -259,7 +259,7 @@ export default definePluginEntry({
         api.registerTool({
             label: "Execute Paid Skill Demo",
             name: "stablepay_execute_paid_skill_demo",
-            description: "Call a demo skill URL; on HTTP 402, complete StablePay payment against api-gateway (default http://127.0.0.1:28080) using ows-pay.md flow: build SPL transfer, OWS sign tx message bytes, business sign with sha256(signed_tx_base64), gateway canonical POST /api/v1/pay. Requires fee payer in config or STABLEPAY_FEE_PAYER_SOL.",
+            description: "Call a demo skill URL; on HTTP 402, complete StablePay payment against api-gateway (default https://ai.wenfu.cn) using ows-pay.md flow: build SPL transfer, OWS sign tx message bytes, business sign with sha256(signed_tx_base64), gateway canonical POST /api/v1/pay. Requires fee payer in config or STABLEPAY_FEE_PAYER_SOL.",
             parameters: Type.Object({
                 execute_url: Type.Optional(Type.String({ description: "Demo backend execute URL. Defaults to http://127.0.0.1:8787/execute." })),
                 retry_attempts: Type.Optional(Type.Integer({ minimum: 1, maximum: 20 })),
@@ -371,7 +371,7 @@ export default definePluginEntry({
         api.registerTool({
             label: "Pay Skill Via Gateway",
             name: "stablepay_pay_via_gateway",
-            description: "GET /api/v1/pay/require on StablePay api-gateway (e.g. localhost:28080), then on HTTP 402 run the full ows-pay.md payment (partial SPL tx + signatures + POST /api/v1/pay). Use this from chat without any external shell script.",
+            description: "GET /api/v1/pay/require on StablePay api-gateway (e.g. ai.wenfu.cn), then on HTTP 402 run the full ows-pay.md payment (partial SPL tx + signatures + POST /api/v1/pay). Use this from chat without any external shell script.",
             parameters: Type.Object({
                 skill_did: Type.String({ description: "Seller skill DID, e.g. did:solana:..." }),
                 skill_name: Type.String({ description: "Skill name as registered for pay/require." }),
