@@ -9,8 +9,9 @@
           "solanaRpcUrl": "https://api.devnet.solana.com",
           "splTokenMintAddress": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
           "verifyPageBaseUrl": "http://127.0.0.1:3000/verify",
-          "didRegisterPath": "/api/v1/did",
-          "requestTimeoutMs": 8000,
+          "owsRuntime": "ows-sdk",
+          "didRegisterPath": "/api/v1/did/register",
+          "requestTimeoutMs": 90000,
           "rewardAmount": 1
         }
       }
@@ -21,13 +22,15 @@
     "allow": [
       "stablepay_runtime_status",
       "stablepay_create_local_wallet",
+      "stablepay_bind_existing_wallet",
       "stablepay_register_local_did",
       "stablepay_configure_payment_limits",
       "stablepay_build_payment_policy",
       "stablepay_sign_message",
       "stablepay_pay_via_gateway",
       "stablepay_execute_paid_skill_demo",
-      "stablepay_query_sales"
+      "stablepay_query_sales",
+      "stablepay_query_balance"
     ]
   }
 }

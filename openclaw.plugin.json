@@ -2,7 +2,7 @@
   "id": "stablepay-agentpay-dev",
   "name": "stablepay-agentpay-dev",
   "description": "StablePay wallet, DID registration (client-held keys), OWS/local signing, and payment flows.",
-  "version": "0.3.8",
+  "version": "0.3.9",
   "configSchema": {
     "type": "object",
     "additionalProperties": false,
@@ -62,8 +62,8 @@
       "owsRuntime": {
         "type": "string",
         "enum": ["auto", "ows-sdk", "ows-cli", "wsl-ows", "ows-rest"],
-        "default": "auto",
-        "description": "Preferred local signing runtime"
+        "default": "ows-sdk",
+        "description": "Default ows-sdk (in-process @open-wallet-standard/core). Use ows-cli/wsl-ows only when the OpenClaw gateway process can run `ows` on PATH; auto picks sdk then rest then cli."
       },
       "owsRestBaseUrl": {
         "type": "string",
@@ -140,11 +140,11 @@
     },
     "owsRuntime": {
       "label": "Signing runtime",
-      "help": "Prefer auto. Uses OWS SDK, OWS CLI, or OWS REST."
+      "help": "Default ows-sdk. Set ows-cli/wsl-ows if the gateway host has OWS CLI on PATH. auto = sdk, then REST (if configured), then CLI."
     },
     "didRegisterPath": {
       "label": "DID register path",
-      "help": "Default POST /api/v1/did (PRD/tech contract). /api/v1/did/register is an equivalent alias. Server never stores user private keys."
+      "help": "Default POST /api/v1/did/register (client-held wallet bind). /api/v1/did is server Create DID (different semantics)."
     }
   }
 }

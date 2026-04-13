@@ -40,7 +40,8 @@ export function getPluginConfig(api: any): Required<PluginConfig> {
     localStateKeyEnv: raw.localStateKeyEnv ?? DEFAULT_MASTER_KEY_ENV,
     owsVaultPath: raw.owsVaultPath ?? "",
     owsPassphraseEnv: raw.owsPassphraseEnv ?? DEFAULT_OWS_PASSPHRASE_ENV,
-    owsRuntime: raw.owsRuntime ?? "auto",
+    // Default ows-sdk: OpenClaw gateway often has no `ows` on PATH; use ows-cli/wsl-ows only when CLI is reachable.
+    owsRuntime: raw.owsRuntime ?? "ows-sdk",
     walletNamePrefix: raw.walletNamePrefix ?? DEFAULT_WALLET_NAME_PREFIX,
     didRegisterPath: raw.didRegisterPath ?? DEFAULT_DID_REGISTER_PATH,
     owsRestBaseUrl: raw.owsRestBaseUrl ? normalizeBaseUrl(raw.owsRestBaseUrl) : "",

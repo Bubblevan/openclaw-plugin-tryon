@@ -1,3 +1,12 @@
+/**
+ * OpenClaw tools registered by this plugin (15 total; optional = marked):
+ * stablepay_runtime_status, stablepay_create_local_wallet, stablepay_bind_existing_wallet,
+ * stablepay_register_local_did, stablepay_configure_payment_limits, stablepay_build_payment_policy,
+ * stablepay_sign_message, stablepay_execute_paid_skill_demo, stablepay_pay_via_gateway,
+ * stablepay_generate_verify_link (opt), stablepay_seed_mock_tweet (opt), stablepay_verify_x_mock (opt),
+ * stablepay_query_balance, stablepay_query_sales, stablepay_get_verify_status (opt).
+ * Runtime package id: stablepay-agentpay-dev (see openclaw.plugin.json).
+ */
 import { Type } from "@sinclair/typebox";
 import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
 

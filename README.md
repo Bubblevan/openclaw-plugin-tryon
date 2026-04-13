@@ -29,7 +29,7 @@ openclaw gateway restart
 命名说明（避免混淆）：
 
 - ClawHub 安装 slug：`stablepay-agentpay-dev`
-- 插件 runtime id（manifest）：`stablepay-agentpay-dev`
+- 插件 runtime id（manifest / `plugins.entries` 键名）：`stablepay-agentpay-dev`（**不是** `stablepay-plugin-dev`；对话里若工具列表对不上，先确认加载的是本仓库这一份源码并已 `npm run build` +重启网关）
 
 ## 运行前准备
 
@@ -95,7 +95,7 @@ ows wallet list
           "feePayerSolanaAddress": "REPLACE_WITH_PLATFORM_HOTWALLET_SOLANA_PUBKEY",
           "solanaRpcUrl": "https://api.devnet.solana.com",
           "splTokenMintAddress": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
-          "owsRuntime": "auto",
+          "owsRuntime": "ows-sdk",
           "didRegisterPath": "/api/v1/did/register"
         }
       }
@@ -114,9 +114,9 @@ ows wallet list
 
 | runtime | 含义 | 前置条件 |
 |---|---|---|
-| `auto` | 按优先级自动选择 | `ows-sdk -> ows-rest(有 token) -> ows-cli` |
-| `ows-sdk` | 进程内 SDK 签名 | 环境可加载 `@open-wallet-standard/core` |
-| `ows-cli` | 调本机 `ows` 子进程签名 | PATH 中可执行 `ows`，且你已有钱包 |
+| `auto` | 按优先级自动选择 | **`ows-sdk` → `ows-rest`（配了 baseUrl+token）→ `ows-cli`** |
+| `ows-sdk` | 进程内 SDK 签名（**插件默认**） | 环境可加载 `@open-wallet-standard/core`；网关进程无需 PATH里的 `ows` |
+| `ows-cli` | 调本机 `ows` 子进程签名 | **仅当 OpenClaw/gateway 进程所在环境** PATH 中可执行 `ows` |
 | `wsl-ows` | 与 `ows-cli` 同路径语义 | 仍依赖本机 `ows` |
 | `ows-rest` | 调 HTTP 签名服务 | 配 `owsRestBaseUrl` + API key |
 
@@ -198,7 +198,9 @@ openclaw tui
 
 ## 工具清单
 
-`registerTool` 的 **optional** 仅保留给 X / Mock 验证相关工具；其余工具默认始终向 OpenClaw 暴露（无需再在 `tools.allow` 里单独放行查询类工具）。
+源码入口：`src/index.ts` 顶部注释列出 **15** 个工具名（与下表一致）。**不存在** `stablepay_create_mock_wallet`等旧名；若模型仍枚举旧列表，说明读的是过时代码或未同步的副本。
+
+`registerTool` 的 **optional** 仅保留给 X / Mock 验证相关工具。若在 `openclaw.json` 里配置了 `tools.allow` 白名单，必须把 **`stablepay_bind_existing_wallet`** 等新工具也写进去，否则对话里会「看不到」对应工具。
 
 | 工具名 | Optional | 用途说明 |
 |--------|----------|----------|
@@ -251,7 +253,14 @@ openclaw tui
 9) 为什么这里只配 hotwallet 公钥不是私钥？
 - 客户端只需公钥参与交易消息构造；私钥必须只在服务端保存。
 
-10) 重启网关报 `ajv implementation error` / `unknown format "uri"`？
+10) 模型说「没有 `stablepay_bind_existing_wallet`」或工具数量不对？
+- 以本仓库 `src/index.ts` 为准；升级后执行 `npm run build`，`openclaw gateway restart`，并确认 `plugins.entries` 键名为 **`stablepay-agentpay-dev`**。
+- 若配置了 `tools.allow`，必须把 `stablepay_bind_existing_wallet` 加入列表。
+
+11) `Failed to load local plugin state` / 状态无法解密？
+- 多半是 **`STABLEPAY_PLUGIN_MASTER_KEY`（或 `localStateKeyEnv`）与创建该 state 时不一致**；换机器或密钥后需重新 bind/create 或恢复备份文件。
+
+12) 重启网关报 `ajv implementation error` / `unknown format "uri"`？
 - 已移除插件 schema 的 `format: "uri"` 约束以兼容当前 OpenClaw/AJV 组合；升级后重新安装插件并重启网关。
 
 ## 开发

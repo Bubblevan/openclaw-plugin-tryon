@@ -529,7 +529,8 @@ export class StablePayRuntime {
         catch (error) {
             if (isMissingFile(error))
                 return { version: 1 };
-            throw new Error(`Failed to load local plugin state: ${error instanceof Error ? error.message : String(error)}`);
+            const hint = "If the state file already exists, the master key must match (set the same STABLEPAY_PLUGIN_MASTER_KEY / localStateKeyEnv as when it was created).";
+            throw new Error(`Failed to load local plugin state (${this.cfg.localStatePath}): ${error instanceof Error ? error.message : String(error)}. ${hint}`);
         }
     }
     async saveState(state) {
