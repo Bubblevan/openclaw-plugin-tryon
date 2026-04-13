@@ -23,20 +23,30 @@ export class StablePayClient {
         return this.post("/verify-twitter", input);
     }
     async getVerifyStatus(did) {
-        return this.get(`/verify?did=${encodeURIComponent(did)}`);
+        return this.request("GET", `/verify?did=${encodeURIComponent(did)}`);
     }
-    async getBalance(did) {
-        try {
-            // Newer gateway contract.
-            return await this.get(`/api/v1/balance?agent_did=${encodeURIComponent(did)}`);
-        }
-        catch (error) {
-            if (!(error instanceof StablePayHttpError) || error.status !== 400) {
+    /**
+     * GET /api/v1/balance. When api-gateway route uses auth "did", pass signed headers (see buildGatewayDidAuthHeaders).
+     */
+    async getBalance(did, gatewayAuthHeaders) {
+        const path = "/api/v1/balance";
+        const attempts = [`agent_did=${encodeURIComponent(did)}`, `agent=${encodeURIComponent(did)}`];
+        let lastError;
+        for (let i = 0; i < attempts.length; i++) {
+            try {
+                const rawQuery = attempts[i];
+                const headers = await gatewayAuthHeaders(path, rawQuery);
+                return await this.request("GET", `${path}?${rawQuery}`, undefined, headers);
+            }
+            catch (error) {
+                lastError = error;
+                if (i === 0 && error instanceof StablePayHttpError && error.status === 400) {
+                    continue;
+                }
                 throw error;
             }
-            // Backward-compat fallback for older deployments.
-            return this.get(`/api/v1/balance?agent=${encodeURIComponent(did)}`);
         }
+        throw lastError;
     }
     async executeDemoSkill(executeUrl, agentDid) {
         const target = new URL(executeUrl);
@@ -69,11 +79,11 @@ export class StablePayClient {
         const { status, payload } = await this.rawRequest("GET", `/api/v1/pay/require?${q.toString()}`, undefined, undefined, [200, 402]);
         return { status, payload };
     }
-    async getSales(skillDid, headers) {
-        return this.request("GET", `/api/v1/sales?skill_did=${encodeURIComponent(skillDid)}`, undefined, headers);
-    }
-    async get(path) {
-        return this.request("GET", path);
+    async getSales(skillDid, gatewayAuthHeaders) {
+        const path = "/api/v1/sales";
+        const rawQuery = `skill_did=${encodeURIComponent(skillDid)}`;
+        const headers = await gatewayAuthHeaders(path, rawQuery);
+        return this.request("GET", `${path}?${rawQuery}`, undefined, headers);
     }
     async post(path, body, headers) {
         return this.request("POST", path, body, headers);

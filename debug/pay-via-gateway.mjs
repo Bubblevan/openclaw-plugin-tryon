@@ -1,7 +1,7 @@
-import { StablePayRuntime } from "./dist/runtime.js";
-import { StablePayClient } from "./dist/client.js";
-import { getPluginConfig } from "./dist/config.js";
-import { settlePaymentViaGateway } from "./dist/pay_settlement.js";
+import { StablePayRuntime } from "../dist/runtime.js";
+import { StablePayClient } from "../dist/client.js";
+import { getPluginConfig } from "../dist/config.js";
+import { settlePaymentViaGateway } from "../dist/pay_settlement.js";
 
 function getArg(name, fallback = "") {
   const prefix = `--${name}=`;

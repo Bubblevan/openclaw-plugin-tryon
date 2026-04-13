@@ -11,6 +11,7 @@ import { Type } from "@sinclair/typebox";
 import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
 import { StablePayClient, StablePayHttpError } from "./client.js";
 import { getPluginConfig } from "./config.js";
+import { buildGatewayDidAuthHeaders } from "./gateway_auth.js";
 import { settlePaymentViaGateway } from "./pay_settlement.js";
 import { StablePayRuntime } from "./runtime.js";
 import { initStablePayPluginLogging, stablePayInfo } from "./plugin_log.js";
@@ -537,13 +538,13 @@ export default definePluginEntry({
         api.registerTool({
             label: "Query Balance",
             name: "stablepay_query_balance",
-            description: "Query agent balance from StablePay api-gateway GET /api/v1/balance (agent_did query; falls back to legacy agent= on 400). Not on-chain RPC.",
+            description: "Query agent balance via GET /api/v1/balance. Signs the gateway canonical (DID auth) like pay; not raw RPC.",
             parameters: Type.Object({
                 did: Type.String({ description: "StablePay DID" }),
             }, { additionalProperties: false }),
             async execute(_id, params) {
                 try {
-                    const balance = await client.getBalance(params.did);
+                    const balance = await client.getBalance(params.did, (path, rawQuery) => buildGatewayDidAuthHeaders(runtime, params.did, "GET", path, rawQuery));
                     return textResult([
                         `Balance query succeeded.`,
                         `DID: ${params.did}`,
@@ -560,13 +561,18 @@ export default definePluginEntry({
         api.registerTool({
             label: "Query Skill Sales",
             name: "stablepay_query_sales",
-            description: "Query seller sales for a skill_did via StablePay api-gateway GET /api/v1/sales (DID-authenticated when gateway requires it).",
+            description: "Query seller sales via GET /api/v1/sales?skill_did=... with gateway DID signature (same wallet as runtime).",
             parameters: Type.Object({
                 skill_did: Type.String({ description: "Seller skill DID (did:solana:...)" }),
             }, { additionalProperties: false }),
             async execute(_id, params) {
                 try {
-                    const sales = await client.getSales(params.skill_did);
+                    const st = await runtime.getStatus();
+                    const signerDid = st.wallet?.did;
+                    if (!signerDid) {
+                        return errorResult("No wallet in runtime; create or bind a wallet first.", new Error("missing_wallet"));
+                    }
+                    const sales = await client.getSales(params.skill_did, (path, rawQuery) => buildGatewayDidAuthHeaders(runtime, signerDid, "GET", path, rawQuery));
                     return textResult([
                         `Sales query succeeded.`,
                         `Skill DID: ${params.skill_did}`,
