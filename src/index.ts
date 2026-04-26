@@ -781,6 +781,47 @@ function errorResult(prefix: string, error: unknown) {
 }
 
 function extractPaymentRequirement(payload: any) {
+  // x402 standard format support
+  if (payload?.x402Version === 1 && Array.isArray(payload?.accepts) && payload.accepts.length > 0) {
+    const accept = payload.accepts[0];
+    const extra = accept?.extra || {};
+
+    // Convert maxAmountRequired from minor units (6 decimals for USDC) to decimal string
+    const maxAmountRequired = accept?.maxAmountRequired;
+    let price: string;
+    if (typeof maxAmountRequired === "string" || typeof maxAmountRequired === "number") {
+      const minorUnits = BigInt(maxAmountRequired);
+      const whole = minorUnits / 1_000_000n;
+      const fraction = minorUnits % 1_000_000n;
+      price = fraction === 0n ? whole.toString() : `${whole}.${fraction.toString().padStart(6, "0")}`;
+    } else {
+      throw new Error("x402 response missing maxAmountRequired in accepts[0]");
+    }
+
+    const skillDid = extra.skillDid || extra.skill_did;
+    if (!skillDid) {
+      throw new Error("x402 response missing skillDid in accepts[0].extra");
+    }
+
+    return {
+      skill_did: skillDid,
+      price: price,
+      currency: extra.currency || "USDC",
+      message: accept.description || extra.message,
+      payment_endpoint: extra.facilitatorUrl || "/api/v1/pay",
+      // x402 specific fields for future use
+      _x402: {
+        version: payload.x402Version,
+        scheme: accept.scheme,
+        network: accept.network,
+        payTo: accept.payTo,
+        asset: accept.asset,
+        maxTimeoutSeconds: accept.maxTimeoutSeconds,
+      },
+    };
+  }
+
+  // Legacy format support (backward compatibility)
   const candidate =
     payload?.payment_requirement?.data ||
     payload?.payment_requirement ||

@@ -13,6 +13,15 @@ export type PaymentRequirement = {
   message?: string;
   payment_endpoint?: string;
   skill_name?: string;
+  // x402 standard fields (optional, for future use)
+  _x402?: {
+    version: number;
+    scheme: string;
+    network: string;
+    payTo: string;
+    asset: string;
+    maxTimeoutSeconds: number;
+  };
 };
 
 export type PaymentConfigSnapshot = {
